@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
+  // CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -153,31 +153,15 @@ export function CountryPanel() {
 
   return (
     <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-black/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-white/10">
-      <CardHeader className="shrink-0 space-y-1 px-2.5 pb-2 sm:space-y-2 sm:px-4 sm:pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <CardTitle className="font-heading text-card-foreground text-xl tracking-tight sm:text-3xl">
+      <CardHeader className="shrink-0 px-2.5 pb-2 sm:px-4 sm:pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="font-heading text-card-foreground min-w-0 flex-1 text-xl tracking-tight sm:text-3xl">
             Warmth Atlas
           </CardTitle>
-          <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
+          <div className="shrink-0 pt-0.5">
             <ThemeToggle />
-            <LearnDialog />
-            <Link
-              href="/educators"
-              className="text-primary text-xs font-medium underline-offset-4 hover:underline sm:text-sm"
-            >
-              Educators
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-muted-foreground text-xs underline-offset-4 hover:underline sm:text-sm"
-            >
-              Privacy
-            </Link>
           </div>
         </div>
-        {/* <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
-          Live air temperature for countries (near capitals) and U.S. states
-        </CardDescription> */}
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-2.5 sm:gap-5 sm:px-4">
@@ -407,9 +391,26 @@ export function CountryPanel() {
         </div>
       </CardContent>
 
-      <CardFooter className="text-muted-foreground hidden shrink-0 border-t px-4 py-3 text-xs leading-snug sm:block">
-        Temperatures from Open-Meteo (current). Natural Earth: country and U.S. state boundaries. Country names:
-        REST Countries.
+      <CardFooter className="border-border/60 shrink-0 flex flex-col gap-2.5 border-t px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+        <nav
+          className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:justify-start sm:gap-x-5"
+          aria-label="Help and legal"
+        >
+          <LearnDialog />
+          <Link
+            href="/educators"
+            className="text-primary text-xs font-medium underline-offset-4 hover:underline sm:text-sm"
+          >
+            Educators
+          </Link>
+          <Link href="/privacy" className="text-xs underline-offset-4 hover:underline sm:text-sm">
+            Privacy
+          </Link>
+        </nav>
+        <p className="text-muted-foreground text-center text-[10px] leading-snug sm:text-left sm:text-xs">
+          Temperatures from Open-Meteo (current). Natural Earth: country and U.S. state boundaries. Country names:
+          REST Countries.
+        </p>
       </CardFooter>
     </Card>
   );
