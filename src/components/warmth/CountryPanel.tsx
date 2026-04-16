@@ -175,10 +175,9 @@ export function CountryPanel() {
             </Link>
           </div>
         </div>
-        <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
-          Live air temperature for countries (near capitals) and U.S. states (reference coordinates), colored on the
-          globe — add places to compare.
-        </CardDescription>
+        {/* <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
+          Live air temperature for countries (near capitals) and U.S. states
+        </CardDescription> */}
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-2.5 sm:gap-5 sm:px-4">
@@ -292,7 +291,7 @@ export function CountryPanel() {
 
           {countries.length === 0 ? (
             <p className="text-muted-foreground shrink-0 rounded-lg border border-dashed border-border/50 p-2.5 text-xs leading-relaxed sm:p-4 sm:text-sm">
-              Nothing selected yet. Add a country or U.S. state to paint it by temperature and fly the globe there.
+              Nothing selected yet. Add a country or U.S.
             </p>
           ) : (
             <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
