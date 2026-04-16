@@ -97,6 +97,13 @@ export default function EducatorsPage() {
               </a>
             </li>
             <li>
+              <span className="text-foreground font-medium">Flags: </span>
+              {PRODUCT_DATA_SOURCES.flags.note}{" "}
+              <a className="text-primary underline-offset-4 hover:underline" href={PRODUCT_DATA_SOURCES.flags.url}>
+                {PRODUCT_DATA_SOURCES.flags.name}
+              </a>
+            </li>
+            <li>
               <span className="text-foreground font-medium">Map: </span>
               {PRODUCT_DATA_SOURCES.map.note}{" "}
               <a className="text-primary underline-offset-4 hover:underline" href={PRODUCT_DATA_SOURCES.map.url}>

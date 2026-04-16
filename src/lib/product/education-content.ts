@@ -19,6 +19,11 @@ export const PRODUCT_DATA_SOURCES = {
     url: "https://restcountries.com/",
     note: "Country names, ISO codes, and capital coordinates.",
   },
+  flags: {
+    name: "flagcdn.com",
+    url: "https://flagcdn.com/",
+    note: "Small PNG flag images in the sidebar (and related UI); your browser requests these from their CDN when you view a place.",
+  },
   map: {
     name: "Mapbox",
     url: "https://www.mapbox.com/",
@@ -42,6 +47,7 @@ export const PRODUCT_GUARDS = {
       "Each country uses a single temperature reading for the capital area (not an average for the whole country). The API returns an observation timestamp when available—hover the info icon on a country row or open Learn.",
       "Country outlines and names come from open geographic and reference datasets; weather is computed for the capital point Open-Meteo exposes for “current” conditions.",
       "Map attribution appears on the map (Mapbox); we list software and data sources in Learn and on the Educators page.",
+      "Flag thumbnails in the list load from flagcdn.com; labels on the globe may combine regional-indicator emoji with the temperature text—rendering can vary slightly by device.",
     ],
   },
   accessibility: {

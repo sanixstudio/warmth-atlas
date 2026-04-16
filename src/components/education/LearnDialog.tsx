@@ -102,6 +102,18 @@ export function LearnDialog() {
                   </a>
                 </li>
                 <li>
+                  <span className="text-foreground font-medium">Flags: </span>
+                  {PRODUCT_DATA_SOURCES.flags.note}{" "}
+                  <a
+                    href={PRODUCT_DATA_SOURCES.flags.url}
+                    className="text-primary underline-offset-4 hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {PRODUCT_DATA_SOURCES.flags.name}
+                  </a>
+                </li>
+                <li>
                   <span className="text-foreground font-medium">Map: </span>
                   {PRODUCT_DATA_SOURCES.map.note}{" "}
                   <a

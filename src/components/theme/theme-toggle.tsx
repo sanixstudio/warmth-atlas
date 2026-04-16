@@ -28,7 +28,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <div
-        className="bg-muted/80 h-8 w-27 animate-pulse rounded-lg border border-border/60 sm:h-9 sm:w-30"
+        className="bg-muted/80 size-8 animate-pulse rounded-lg border border-border/60 sm:size-9"
         aria-hidden
       />
     );
@@ -42,33 +42,33 @@ export function ThemeToggle() {
     >
       <Button
         type="button"
-        size="sm"
+        size="icon"
         variant={appearance === "light" ? "default" : "ghost"}
         className={cn(
-          "h-7 min-w-0 flex-1 gap-1 rounded-md px-2 text-[11px] font-medium sm:h-8 sm:px-2.5 sm:text-xs",
+          "size-8 rounded-md sm:size-9",
           appearance !== "light" && "text-muted-foreground hover:text-foreground",
         )}
         onClick={() => setTheme("light")}
         aria-pressed={appearance === "light"}
+        aria-label="Light theme"
         title="Light theme"
       >
-        <Sun className="size-3.5 shrink-0 sm:size-4" aria-hidden />
-        <span>Light</span>
+        <Sun className="size-4 shrink-0 sm:size-[1.125rem]" aria-hidden />
       </Button>
       <Button
         type="button"
-        size="sm"
+        size="icon"
         variant={appearance === "dark" ? "default" : "ghost"}
         className={cn(
-          "h-7 min-w-0 flex-1 gap-1 rounded-md px-2 text-[11px] font-medium sm:h-8 sm:px-2.5 sm:text-xs",
+          "size-8 rounded-md sm:size-9",
           appearance !== "dark" && "text-muted-foreground hover:text-foreground",
         )}
         onClick={() => setTheme("dark")}
         aria-pressed={appearance === "dark"}
+        aria-label="Dark theme"
         title="Dark theme"
       >
-        <Moon className="size-3.5 shrink-0 sm:size-4" aria-hidden />
-        <span>Dark</span>
+        <Moon className="size-4 shrink-0 sm:size-[1.125rem]" aria-hidden />
       </Button>
     </div>
   );

@@ -7,6 +7,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LearnDialog } from "@/components/education/LearnDialog";
+import { PlaceFlagImg } from "@/components/warmth/PlaceFlagImg";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ async function fetchWeather(
  */
 export function CountryPanel() {
   const [query, setQuery] = useState("");
+  /** Phrase shown when several matches need picking (input is cleared after search). */
+  const [choiceMatchPhrase, setChoiceMatchPhrase] = useState("");
   const [candidates, setCandidates] = useState<PlaceSearchResult[] | null>(null);
   const choicePanelRef = useRef<HTMLDivElement>(null);
 
@@ -118,21 +121,27 @@ export function CountryPanel() {
 
   const searchMutation = useMutation({
     mutationFn: async (raw: string) => fetchSearch(raw.trim()),
-    onSuccess: (results) => {
+    onSuccess: (results, raw) => {
+      const phrase = raw.trim();
+      setQuery("");
       if (results.length === 0) {
         setCandidates(null);
+        setChoiceMatchPhrase("");
         toast.message("No matches — try another spelling.");
         return;
       }
       if (results.length === 1) {
         setCandidates(null);
+        setChoiceMatchPhrase("");
         addCountry.mutate(results[0]);
         return;
       }
+      setChoiceMatchPhrase(phrase);
       setCandidates(results);
     },
     onError: (e: Error) => {
       setCandidates(null);
+      setChoiceMatchPhrase("");
       toast.error(e.message ?? "Search failed");
     },
   });
@@ -147,6 +156,7 @@ export function CountryPanel() {
 
   function pickCandidate(c: PlaceSearchResult) {
     setCandidates(null);
+    setChoiceMatchPhrase("");
     setQuery("");
     addCountry.mutate(c);
   }
@@ -219,7 +229,7 @@ export function CountryPanel() {
                   Choose a place from the list
                 </p>
                 <p className="text-muted-foreground text-sm leading-snug sm:text-[0.9375rem]">
-                  Several places matched &quot;{query.trim()}&quot; — tap a row below to add it.
+                  Several places matched &quot;{choiceMatchPhrase}&quot; — tap a row below to add it.
                 </p>
               </div>
             </div>
@@ -230,19 +240,22 @@ export function CountryPanel() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="hover:bg-muted/80 min-h-10 w-full touch-manipulation justify-start rounded-md py-2 text-left sm:min-h-9 sm:py-1.5"
+                      className="hover:bg-muted/80 flex min-h-10 w-full touch-manipulation items-center gap-2 rounded-md py-2 text-left sm:min-h-9 sm:py-1.5"
                       onClick={() => pickCandidate(c)}
                       disabled={busy}
                     >
-                      <span className="font-medium">{c.name}</span>
-                      <span className="text-muted-foreground ml-2 text-xs sm:text-sm">
-                        {c.kind === "country" ? (
-                          <>
-                            {c.iso2} · {c.capital}
-                          </>
-                        ) : (
-                          <>U.S. state · {c.id}</>
-                        )}
+                      <PlaceFlagImg candidate={c} className="!size-6 shrink-0 sm:!size-7" />
+                      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-muted-foreground text-xs sm:text-sm">
+                          {c.kind === "country" ? (
+                            <>
+                              {c.iso2} · {c.capital}
+                            </>
+                          ) : (
+                            <>U.S. state · {c.id}</>
+                          )}
+                        </span>
                       </span>
                     </Button>
                   </li>
@@ -275,7 +288,7 @@ export function CountryPanel() {
 
           {countries.length === 0 ? (
             <p className="text-muted-foreground shrink-0 rounded-lg border border-dashed border-border/50 p-2.5 text-xs leading-relaxed sm:p-4 sm:text-sm">
-              Nothing selected yet. Add a country or U.S.
+              Nothing selected yet. Add a country or U.S. state to paint it by temperature and fly the globe there.
             </p>
           ) : (
             <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
@@ -285,6 +298,7 @@ export function CountryPanel() {
                     key={c.id}
                     className="border-border/70 flex items-center gap-2 rounded-xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5"
                   >
+                    <PlaceFlagImg place={c} className="!size-7 shrink-0 sm:!size-8" />
                     <span
                       className="ring-foreground/15 h-9 w-2 shrink-0 self-stretch rounded-full ring-2 sm:h-10 dark:ring-white/20"
                       style={{ background: c.warmthFill }}
@@ -368,11 +382,12 @@ export function CountryPanel() {
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             Display
           </span>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <Button
               type="button"
+              size="sm"
               variant={tempDisplayUnit === "C" ? "default" : "secondary"}
-              className="min-h-10 flex-1 text-sm touch-manipulation sm:h-9 sm:min-h-0 sm:text-base"
+              className="h-7 min-w-9 touch-manipulation px-2.5 text-xs font-semibold tabular-nums sm:h-8 sm:min-w-10 sm:text-sm"
               onClick={() => setTempDisplayUnit("C")}
               aria-pressed={tempDisplayUnit === "C"}
             >
@@ -380,8 +395,9 @@ export function CountryPanel() {
             </Button>
             <Button
               type="button"
+              size="sm"
               variant={tempDisplayUnit === "F" ? "default" : "secondary"}
-              className="min-h-10 flex-1 text-sm touch-manipulation sm:h-9 sm:min-h-0 sm:text-base"
+              className="h-7 min-w-9 touch-manipulation px-2.5 text-xs font-semibold tabular-nums sm:h-8 sm:min-w-10 sm:text-sm"
               onClick={() => setTempDisplayUnit("F")}
               aria-pressed={tempDisplayUnit === "F"}
             >

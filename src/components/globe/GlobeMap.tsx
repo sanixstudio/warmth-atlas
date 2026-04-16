@@ -23,6 +23,7 @@ import {
   findCountryFeature,
   getCountryLabelLngLat,
 } from "@/lib/geo/country-features";
+import { mapLabelWithFlagEmoji } from "@/lib/geo/place-flag";
 import { findUsStateFeature, getUsStateLabelLngLat } from "@/lib/geo/us-state-features";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
@@ -99,11 +100,13 @@ function buildTemperatureLabelPoints(
       if (!base) continue;
       const [lon, lat] = getCountryLabelLngLat(base);
       const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+      const tempLabel = formatTemperature(c.tempC, unit, 1);
       features.push({
         type: "Feature",
         geometry,
         properties: {
-          tempLabel: formatTemperature(c.tempC, unit, 1),
+          mapLabel: mapLabelWithFlagEmoji(c, tempLabel),
+          tempLabel,
           placeId: c.id,
         },
       });
@@ -113,11 +116,13 @@ function buildTemperatureLabelPoints(
       if (!base) continue;
       const [lon, lat] = getUsStateLabelLngLat(base);
       const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+      const tempLabel = formatTemperature(c.tempC, unit, 1);
       features.push({
         type: "Feature",
         geometry,
         properties: {
-          tempLabel: formatTemperature(c.tempC, unit, 1),
+          mapLabel: mapLabelWithFlagEmoji(c, tempLabel),
+          tempLabel,
           placeId: c.id,
         },
       });
@@ -127,8 +132,9 @@ function buildTemperatureLabelPoints(
 }
 
 const labelLayout: NonNullable<SymbolLayerSpecification["layout"]> = {
-  "text-field": ["get", "tempLabel"],
-  "text-size": 15,
+  "text-field": ["get", "mapLabel"],
+  "text-size": 14,
+  "text-line-height": 1.35,
   "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
   "text-anchor": "center",
   "text-allow-overlap": true,
