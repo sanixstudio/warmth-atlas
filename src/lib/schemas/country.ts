@@ -1,20 +1,22 @@
 import { z } from "zod";
 
-/** Single REST Countries API v3.1 name lookup record (fields we consume). */
-export const restCountryRecordSchema = z
-  .object({
-    cca2: z.string(),
-    cca3: z.string(),
-    name: z.object({ common: z.string() }),
-    capital: z.array(z.string()).optional(),
-    capitalInfo: z
-      .object({
-        latlng: z.tuple([z.number(), z.number()]),
-      })
-      .optional(),
-    latlng: z.tuple([z.number(), z.number()]),
-  })
-  .passthrough();
+/**
+ * Single REST Countries API v3.1 name lookup record (fields we consume).
+ * `z.looseObject` replaces deprecated `.passthrough()` — unknown top-level keys are allowed;
+ * nested API objects use `looseObject` where responses include extra fields.
+ */
+export const restCountryRecordSchema = z.looseObject({
+  cca2: z.string(),
+  cca3: z.string(),
+  name: z.looseObject({ common: z.string() }),
+  capital: z.array(z.string()).optional(),
+  capitalInfo: z
+    .looseObject({
+      latlng: z.tuple([z.number(), z.number()]),
+    })
+    .optional(),
+  latlng: z.tuple([z.number(), z.number()]),
+});
 
 export type RestCountryRecord = z.infer<typeof restCountryRecordSchema>;
 

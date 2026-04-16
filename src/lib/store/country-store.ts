@@ -3,6 +3,7 @@ import { create } from "zustand";
 import {
   colorFromTempCelsius,
   outlineColorFromTempCelsius,
+  type TemperatureDisplayUnit,
 } from "@/lib/warmth/colorFromTemp";
 
 /** One tracked country on the map (unique `iso2`). */
@@ -21,6 +22,9 @@ export type SelectedCountry = {
 
 type CountryStore = {
   countries: SelectedCountry[];
+  /** Panel + legend: how air temperatures are labeled (stored data stays °C). */
+  tempDisplayUnit: TemperatureDisplayUnit;
+  setTempDisplayUnit: (unit: TemperatureDisplayUnit) => void;
   /** Add or replace by ISO2; recompute warmth from temperature. */
   upsertCountry: (input: Omit<SelectedCountry, "warmthFill" | "warmthOutline">) => void;
   removeCountry: (iso2: string) => void;
@@ -39,6 +43,8 @@ function withWarmth(
 
 export const useCountryStore = create<CountryStore>((set) => ({
   countries: [],
+  tempDisplayUnit: "C",
+  setTempDisplayUnit: (unit) => set({ tempDisplayUnit: unit }),
   upsertCountry: (input) =>
     set((state) => {
       const next = withWarmth(input);

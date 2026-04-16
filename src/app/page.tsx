@@ -1,5 +1,6 @@
 import { GlobeMapLoader } from "@/components/globe/GlobeMapLoader";
 import { CountryPanel } from "@/components/warmth/CountryPanel";
+import { TemperatureLegend } from "@/components/warmth/TemperatureLegend";
 
 /**
  * Full-viewport warmth explorer: panel + Mapbox GL client map.
@@ -12,6 +13,7 @@ export default function Home() {
       </aside>
       <div className="bg-muted relative min-h-[45vh] flex-1 lg:min-h-0">
         <GlobeMapLoader />
+        <TemperatureLegend />
       </div>
     </div>
   );

@@ -22,14 +22,7 @@ import type { CountrySearchResult } from "@/lib/schemas/country";
 import { countrySearchResponseSchema } from "@/lib/schemas/country";
 import { weatherCurrentResponseSchema } from "@/lib/schemas/weather";
 import { useCountryStore } from "@/lib/store/country-store";
-import { celsiusToFahrenheit } from "@/lib/warmth/colorFromTemp";
-
-type TempUnit = "C" | "F";
-
-function formatTemp(tempC: number, unit: TempUnit) {
-  if (unit === "C") return `${tempC.toFixed(1)}°C`;
-  return `${celsiusToFahrenheit(tempC).toFixed(1)}°F`;
-}
+import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
 async function fetchSearch(q: string): Promise<CountrySearchResult[]> {
   const res = await fetch(`/api/countries/search?q=${encodeURIComponent(q)}`);
@@ -67,9 +60,10 @@ async function fetchWeather(lat: number, lon: number): Promise<number> {
 export function CountryPanel() {
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<CountrySearchResult[] | null>(null);
-  const [tempUnit, setTempUnit] = useState<TempUnit>("C");
 
   const countries = useCountryStore((s) => s.countries);
+  const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
+  const setTempDisplayUnit = useCountryStore((s) => s.setTempDisplayUnit);
   const upsertCountry = useCountryStore((s) => s.upsertCountry);
   const removeCountry = useCountryStore((s) => s.removeCountry);
   const clearAll = useCountryStore((s) => s.clearAll);
@@ -89,8 +83,9 @@ export function CountryPanel() {
         lon: country.lon,
         tempC,
       });
+      const unit = useCountryStore.getState().tempDisplayUnit;
       toast.success(`${country.name} added`, {
-        description: `Near ${country.capital}: ${formatTemp(tempC, tempUnit)}`,
+        description: `Near ${country.capital}: ${formatTemperature(tempC, unit)}`,
       });
     },
     onError: (e: Error) => {
@@ -174,19 +169,19 @@ export function CountryPanel() {
           <div className="flex gap-2">
             <Button
               type="button"
-              variant={tempUnit === "C" ? "default" : "secondary"}
+              variant={tempDisplayUnit === "C" ? "default" : "secondary"}
               size="sm"
               className="flex-1"
-              onClick={() => setTempUnit("C")}
+              onClick={() => setTempDisplayUnit("C")}
             >
               °C
             </Button>
             <Button
               type="button"
-              variant={tempUnit === "F" ? "default" : "secondary"}
+              variant={tempDisplayUnit === "F" ? "default" : "secondary"}
               size="sm"
               className="flex-1"
-              onClick={() => setTempUnit("F")}
+              onClick={() => setTempDisplayUnit("F")}
             >
               °F
             </Button>
@@ -266,7 +261,7 @@ export function CountryPanel() {
                         </Badge>
                       </div>
                       <p className="text-muted-foreground truncate text-xs">
-                        {c.capital} · {formatTemp(c.tempC, tempUnit)}
+                        {c.capital} · {formatTemperature(c.tempC, tempDisplayUnit)}
                       </p>
                     </div>
                     <Button
