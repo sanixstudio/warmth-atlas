@@ -16,6 +16,8 @@ describe("parseRestCountriesArray", () => {
     ];
     const results = parseRestCountriesArray(raw);
     expect(results).toHaveLength(1);
+    expect(results[0]?.kind).toBe("country");
+    expect(results[0]?.id).toBe("JP");
     expect(results[0]?.iso2).toBe("JP");
     expect(results[0]?.lat).toBeCloseTo(35.68);
   });

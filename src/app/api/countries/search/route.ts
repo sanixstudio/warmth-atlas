@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import {
-  countrySearchResponseSchema,
-  parseRestCountriesArray,
-} from "@/lib/schemas/country";
+import { parseRestCountriesArray } from "@/lib/schemas/country";
+import { placeSearchResponseSchema } from "@/lib/schemas/place";
+import { searchUsStates } from "@/lib/search/us-states-search";
 
 const querySchema = z.object({
   q: z.string().min(2, "Use at least 2 characters").max(120),
@@ -30,8 +29,11 @@ export async function GET(request: Request) {
     { next: { revalidate: 3600 } },
   );
 
+  const states = searchUsStates(q);
+
   if (res.status === 404) {
-    return NextResponse.json({ results: [] satisfies unknown[] }, { status: 200 });
+    const body = placeSearchResponseSchema.parse({ results: states });
+    return NextResponse.json(body, { status: 200 });
   }
 
   if (!res.ok) {
@@ -42,8 +44,9 @@ export async function GET(request: Request) {
   }
 
   const json: unknown = await res.json();
-  const results = parseRestCountriesArray(json);
-  const body = countrySearchResponseSchema.parse({ results });
+  const countries = parseRestCountriesArray(json);
+  const results = [...countries, ...states];
+  const body = placeSearchResponseSchema.parse({ results });
 
   return NextResponse.json(body);
 }

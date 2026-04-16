@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { Info, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Info, ListChecks, Loader2, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LearnDialog } from "@/components/education/LearnDialog";
@@ -23,20 +23,19 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatObservationTime } from "@/lib/format/observation-time";
-import type { CountrySearchResult } from "@/lib/schemas/country";
-import { countrySearchResponseSchema } from "@/lib/schemas/country";
+import { placeSearchResponseSchema, type PlaceSearchResult } from "@/lib/schemas/place";
 import { weatherCurrentResponseSchema } from "@/lib/schemas/weather";
 import { useCountryStore } from "@/lib/store/country-store";
 import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
-async function fetchSearch(q: string): Promise<CountrySearchResult[]> {
+async function fetchSearch(q: string): Promise<PlaceSearchResult[]> {
   const res = await fetch(`/api/countries/search?q=${encodeURIComponent(q)}`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(typeof err.error === "string" ? err.error : "Search failed");
   }
   const json: unknown = await res.json();
-  const parsed = countrySearchResponseSchema.safeParse(json);
+  const parsed = placeSearchResponseSchema.safeParse(json);
   if (!parsed.success) {
     throw new Error("Unexpected search response");
   }
@@ -70,7 +69,13 @@ async function fetchWeather(
  */
 export function CountryPanel() {
   const [query, setQuery] = useState("");
-  const [candidates, setCandidates] = useState<CountrySearchResult[] | null>(null);
+  const [candidates, setCandidates] = useState<PlaceSearchResult[] | null>(null);
+  const choicePanelRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!candidates || candidates.length <= 1) return;
+    choicePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [candidates]);
 
   const countries = useCountryStore((s) => s.countries);
   const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
@@ -80,24 +85,30 @@ export function CountryPanel() {
   const clearAll = useCountryStore((s) => s.clearAll);
 
   const addCountry = useMutation({
-    mutationFn: async (country: CountrySearchResult) => {
-      const { temperatureC, observedAt } = await fetchWeather(country.lat, country.lon);
-      return { country, tempC: temperatureC, observedAt };
+    mutationFn: async (place: PlaceSearchResult) => {
+      const { temperatureC, observedAt } = await fetchWeather(place.lat, place.lon);
+      return { place, tempC: temperatureC, observedAt };
     },
-    onSuccess: ({ country, tempC, observedAt }) => {
+    onSuccess: ({ place, tempC, observedAt }) => {
       upsertCountry({
-        iso2: country.iso2,
-        iso3: country.iso3,
-        name: country.name,
-        capital: country.capital,
-        lat: country.lat,
-        lon: country.lon,
+        id: place.id,
+        kind: place.kind,
+        iso2: place.iso2,
+        iso3: place.iso3,
+        name: place.name,
+        capital: place.capital,
+        lat: place.lat,
+        lon: place.lon,
         tempC,
         observedAt,
       });
       const unit = useCountryStore.getState().tempDisplayUnit;
-      toast.success(`${country.name} added`, {
-        description: `Near ${country.capital}: ${formatTemperature(tempC, unit)}`,
+      const description =
+        place.kind === "country"
+          ? `Near ${place.capital}: ${formatTemperature(tempC, unit)}`
+          : `${formatTemperature(tempC, unit)} · Natural Earth reference (U.S. state)`;
+      toast.success(`${place.name} added`, {
+        description,
       });
     },
     onError: (e: Error) => {
@@ -110,7 +121,7 @@ export function CountryPanel() {
     onSuccess: (results) => {
       if (results.length === 0) {
         setCandidates(null);
-        toast.message("No countries matched — try another spelling.");
+        toast.message("No matches — try another spelling.");
         return;
       }
       if (results.length === 1) {
@@ -119,7 +130,6 @@ export function CountryPanel() {
         return;
       }
       setCandidates(results);
-      toast.message("Several matches — pick one below.");
     },
     onError: (e: Error) => {
       setCandidates(null);
@@ -135,7 +145,7 @@ export function CountryPanel() {
     searchMutation.mutate(query);
   }
 
-  function pickCandidate(c: CountrySearchResult) {
+  function pickCandidate(c: PlaceSearchResult) {
     setCandidates(null);
     setQuery("");
     addCountry.mutate(c);
@@ -166,7 +176,8 @@ export function CountryPanel() {
           </div>
         </div>
         <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
-          Live air temperature at each capital, colored on the globe — add countries to compare.
+          Live air temperature for countries (near capitals) and U.S. states (reference coordinates), colored on the
+          globe — add places to compare.
         </CardDescription>
       </CardHeader>
 
@@ -176,14 +187,14 @@ export function CountryPanel() {
           className="max-lg:order-1 shrink-0 space-y-1.5 sm:space-y-3 lg:order-1"
         >
           <Label htmlFor="country-q" className="text-xs font-medium sm:text-sm">
-            Country name
+            Country or U.S. state
           </Label>
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
             <Input
               id="country-q"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Try Japan, Brazil, Kenya…"
+              placeholder="Try Japan, Texas, Kenya…"
               autoComplete="off"
               disabled={busy}
               inputMode="search"
@@ -203,22 +214,52 @@ export function CountryPanel() {
         </form>
 
         {candidates && candidates.length > 1 ? (
-          <div className="max-lg:order-2 shrink-0 space-y-2 lg:order-3">
-            <p className="text-muted-foreground text-sm font-medium">Which one?</p>
-            <ScrollArea className="max-h-32 rounded-lg border pr-1 sm:max-h-44 sm:pr-2">
-              <ul className="space-y-1 p-1">
+          <div
+            ref={choicePanelRef}
+            role="region"
+            aria-labelledby="country-choice-heading"
+            aria-live="polite"
+            className="border-border/80 bg-muted/35 max-lg:order-2 shrink-0 space-y-3 rounded-lg border p-3 sm:space-y-3.5 sm:p-3.5 lg:order-3"
+          >
+            <div className="flex gap-2.5 sm:gap-3">
+              <div
+                className="bg-background/80 text-muted-foreground flex size-9 shrink-0 items-center justify-center self-start rounded-lg border border-border/60 sm:size-10"
+                aria-hidden
+              >
+                <ListChecks className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p
+                  id="country-choice-heading"
+                  className="text-foreground text-base font-semibold leading-snug sm:text-[1.05rem]"
+                >
+                  Choose a place from the list
+                </p>
+                <p className="text-muted-foreground text-sm leading-snug sm:text-[0.9375rem]">
+                  Several places matched &quot;{query.trim()}&quot; — tap a row below to add it.
+                </p>
+              </div>
+            </div>
+            <ScrollArea className="bg-background max-h-36 rounded-md border border-border/70 pr-1 sm:max-h-48 sm:pr-2">
+              <ul className="space-y-0.5 p-1 sm:p-1.5">
                 {candidates.map((c) => (
-                  <li key={`${c.iso2}-${c.name}`}>
+                  <li key={`${c.kind}-${c.id}`}>
                     <Button
                       type="button"
                       variant="ghost"
-                      className="min-h-10 w-full touch-manipulation justify-start py-2.5 text-left sm:min-h-0 sm:py-2"
+                      className="hover:bg-muted/80 min-h-10 w-full touch-manipulation justify-start rounded-md py-2 text-left sm:min-h-9 sm:py-1.5"
                       onClick={() => pickCandidate(c)}
                       disabled={busy}
                     >
                       <span className="font-medium">{c.name}</span>
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        {c.iso2} · {c.capital}
+                      <span className="text-muted-foreground ml-2 text-xs sm:text-sm">
+                        {c.kind === "country" ? (
+                          <>
+                            {c.iso2} · {c.capital}
+                          </>
+                        ) : (
+                          <>U.S. state · {c.id}</>
+                        )}
                       </span>
                     </Button>
                   </li>
@@ -240,7 +281,7 @@ export function CountryPanel() {
                 className="text-muted-foreground hover:text-destructive min-h-9 touch-manipulation gap-1 px-2 text-xs sm:h-8 sm:min-h-0 sm:text-sm"
                 onClick={() => {
                   clearAll();
-                  toast.message("Cleared all countries.");
+                  toast.message("Cleared all places.");
                 }}
               >
                 <X className="size-3.5 shrink-0" />
@@ -251,14 +292,14 @@ export function CountryPanel() {
 
           {countries.length === 0 ? (
             <p className="text-muted-foreground shrink-0 rounded-lg border border-dashed border-border/50 p-2.5 text-xs leading-relaxed sm:p-4 sm:text-sm">
-              Nothing selected yet. Add a country to paint it by temperature and fly the globe there.
+              Nothing selected yet. Add a country or U.S. state to paint it by temperature and fly the globe there.
             </p>
           ) : (
             <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
               <ul className="space-y-2 pb-1">
                 {[...countries].reverse().map((c) => (
                   <li
-                    key={c.iso2}
+                    key={c.id}
                     className="border-border/70 flex items-center gap-2 rounded-xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5"
                   >
                     <span
@@ -270,15 +311,18 @@ export function CountryPanel() {
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <span className="truncate text-[15px] font-semibold sm:text-base">{c.name}</span>
                         <Badge variant="secondary" className="font-mono text-[10px] uppercase">
-                          {c.iso2}
+                          {c.kind === "country" ? c.iso2 : c.id}
                         </Badge>
                       </div>
                       <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
-                        {c.capital} · {formatTemperature(c.tempC, tempDisplayUnit)}
+                        {c.kind === "country"
+                          ? `${c.capital} · ${formatTemperature(c.tempC, tempDisplayUnit)}`
+                          : `Natural Earth reference · ${formatTemperature(c.tempC, tempDisplayUnit)}`}
                       </p>
                       {c.observedAt ? (
                         <p className="text-muted-foreground/85 mt-0.5 max-w-full truncate text-[10px] sm:text-xs">
-                          Observed {formatObservationTime(c.observedAt)} (capital area, Open-Meteo)
+                          Observed {formatObservationTime(c.observedAt)}
+                          {c.kind === "country" ? " (capital area, Open-Meteo)" : " (NE reference, Open-Meteo)"}
                         </p>
                       ) : null}
                     </div>
@@ -299,7 +343,16 @@ export function CountryPanel() {
                       <TooltipContent side="bottom" className="max-w-[min(90vw,22rem)] text-left text-xs leading-relaxed">
                         <p className="font-medium">Current air temperature (2 m)</p>
                         <p className="text-muted-foreground mt-1">
-                          Near {c.capital} coordinates from REST Countries. Source: Open-Meteo (current).
+                          {c.kind === "country" ? (
+                            <>
+                              Near {c.capital} coordinates from REST Countries. Source: Open-Meteo (current).
+                            </>
+                          ) : (
+                            <>
+                              Natural Earth reference coordinates for this U.S. state (not the legislative
+                              capital). Source: Open-Meteo (current).
+                            </>
+                          )}
                           {c.observedAt ? (
                             <> Timestamp: {formatObservationTime(c.observedAt)}.</>
                           ) : (
@@ -314,7 +367,7 @@ export function CountryPanel() {
                       variant="ghost"
                       className="text-muted-foreground hover:text-destructive size-11 shrink-0 touch-manipulation sm:size-9"
                       onClick={() => {
-                        removeCountry(c.iso2);
+                        removeCountry(c.id);
                         toast.message(`${c.name} removed`);
                       }}
                       aria-label={`Remove ${c.name}`}
@@ -356,7 +409,8 @@ export function CountryPanel() {
       </CardContent>
 
       <CardFooter className="text-muted-foreground hidden shrink-0 border-t px-4 py-3 text-xs leading-snug sm:block">
-        Temperatures from Open-Meteo (current). Boundaries: Natural Earth. Country data: REST Countries.
+        Temperatures from Open-Meteo (current). Natural Earth: country and U.S. state boundaries. Country names:
+        REST Countries.
       </CardFooter>
     </Card>
   );

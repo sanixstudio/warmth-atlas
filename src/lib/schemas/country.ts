@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { placeSearchResultSchema, type PlaceSearchResult } from "@/lib/schemas/place";
+
 /**
  * Single REST Countries API v3.1 name lookup record (fields we consume).
  * `z.looseObject` replaces deprecated `.passthrough()` — unknown top-level keys are allowed;
@@ -20,31 +22,14 @@ export const restCountryRecordSchema = z.looseObject({
 
 export type RestCountryRecord = z.infer<typeof restCountryRecordSchema>;
 
-export const countrySearchResultSchema = z.object({
-  iso2: z.string().min(2).max(2),
-  iso3: z.string().min(3).max(3),
-  name: z.string(),
-  capital: z.string(),
-  lat: z.number(),
-  lon: z.number(),
-});
-
-export type CountrySearchResult = z.infer<typeof countrySearchResultSchema>;
-
-export const countrySearchResponseSchema = z.object({
-  results: z.array(countrySearchResultSchema),
-});
-
-export type CountrySearchResponse = z.infer<typeof countrySearchResponseSchema>;
-
-/** Parse REST Countries JSON array into normalized search results. */
-export function parseRestCountriesArray(data: unknown): CountrySearchResult[] {
+/** Parse REST Countries JSON array into unified {@link PlaceSearchResult} rows. */
+export function parseRestCountriesArray(data: unknown): PlaceSearchResult[] {
   const arr = z.array(restCountryRecordSchema).safeParse(data);
   if (!arr.success) {
     return [];
   }
 
-  const results: CountrySearchResult[] = [];
+  const results: PlaceSearchResult[] = [];
   for (const r of arr.data) {
     const lat =
       r.capitalInfo?.latlng?.[0] ??
@@ -54,14 +39,19 @@ export function parseRestCountriesArray(data: unknown): CountrySearchResult[] {
       r.latlng[1];
     const capitalName = r.capital?.[0] ?? "—";
 
-    const parsed = countrySearchResultSchema.safeParse({
-      iso2: r.cca2.toUpperCase(),
-      iso3: r.cca3.toUpperCase(),
+    const iso2 = r.cca2.toUpperCase();
+    const iso3 = r.cca3.toUpperCase();
+    const row: PlaceSearchResult = {
+      kind: "country",
+      id: iso2,
       name: r.name.common,
       capital: capitalName,
       lat,
       lon,
-    });
+      iso2,
+      iso3,
+    };
+    const parsed = placeSearchResultSchema.safeParse(row);
     if (parsed.success) {
       results.push(parsed.data);
     }

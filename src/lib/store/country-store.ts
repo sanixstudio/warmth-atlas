@@ -6,8 +6,13 @@ import {
   type TemperatureDisplayUnit,
 } from "@/lib/warmth/colorFromTemp";
 
-/** One tracked country on the map (unique `iso2`). */
+/**
+ * One tracked map entry: sovereign country or U.S. state / D.C. Unique by `id`
+ * (ISO2 for countries, ISO-3166-2 `US-XX` for states).
+ */
 export type SelectedCountry = {
+  id: string;
+  kind: "country" | "us_state";
   iso2: string;
   iso3: string;
   name: string;
@@ -27,11 +32,11 @@ type CountryStore = {
   /** Panel + legend: how air temperatures are labeled (stored data stays °C). */
   tempDisplayUnit: TemperatureDisplayUnit;
   setTempDisplayUnit: (unit: TemperatureDisplayUnit) => void;
-  /** Add or replace by ISO2; recompute warmth from temperature. */
+  /** Add or replace by canonical `id`; recompute warmth from temperature. */
   upsertCountry: (
     input: Omit<SelectedCountry, "warmthFill" | "warmthOutline">,
   ) => void;
-  removeCountry: (iso2: string) => void;
+  removeCountry: (id: string) => void;
   clearAll: () => void;
 };
 
@@ -54,15 +59,13 @@ export const useCountryStore = create<CountryStore>((set) => ({
     set((state) => {
       const next = withWarmth(input);
       const without = state.countries.filter(
-        (c) => c.iso2.toUpperCase() !== next.iso2.toUpperCase(),
+        (c) => c.id.toUpperCase() !== next.id.toUpperCase(),
       );
       return { countries: [...without, next] };
     }),
-  removeCountry: (iso2) =>
+  removeCountry: (id) =>
     set((state) => ({
-      countries: state.countries.filter(
-        (c) => c.iso2.toUpperCase() !== iso2.toUpperCase(),
-      ),
+      countries: state.countries.filter((c) => c.id.toUpperCase() !== id.toUpperCase()),
     })),
   clearAll: () => set({ countries: [] }),
 }));

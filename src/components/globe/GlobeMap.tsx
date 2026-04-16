@@ -8,7 +8,7 @@ import type {
   Map as MapboxMap,
   SymbolLayerSpecification,
 } from "mapbox-gl";
-import type { Feature, FeatureCollection, Point } from "geojson";
+import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, {
@@ -23,6 +23,7 @@ import {
   findCountryFeature,
   getCountryLabelLngLat,
 } from "@/lib/geo/country-features";
+import { findUsStateFeature, getUsStateLabelLngLat } from "@/lib/geo/us-state-features";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
 import type { TemperatureDisplayUnit } from "@/lib/warmth/colorFromTemp";
@@ -31,6 +32,7 @@ import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 const MAP_STYLE_DARK = "mapbox://styles/mapbox/dark-v11";
 const MAP_STYLE_LIGHT = "mapbox://styles/mapbox/light-v11";
 const COUNTRIES_URL = "/data/ne_110m_admin_0_countries.geojson";
+const US_STATES_URL = "/data/ne_110m_us_admin_1_states.geojson";
 
 const fillPaint: NonNullable<FillLayerSpecification["paint"]> = {
   "fill-color": ["get", "warmthFill"],
@@ -45,53 +47,81 @@ const linePaint: NonNullable<LineLayerSpecification["paint"]> = {
 
 function buildHighlightData(
   world: FeatureCollection | null,
+  usStates: FeatureCollection | null,
   countries: SelectedCountry[],
 ): FeatureCollection {
-  if (!world) {
-    return { type: "FeatureCollection", features: [] };
-  }
-
   const features = [];
   for (const c of countries) {
-    const base = findCountryFeature(world, c.iso2, c.iso3);
-    if (!base) continue;
-    features.push({
-      type: "Feature" as const,
-      geometry: base.geometry,
-      properties: {
-        ...base.properties,
-        warmthFill: c.warmthFill,
-        warmthOutline: c.warmthOutline,
-        iso2: c.iso2,
-      },
-    });
+    if (c.kind === "country") {
+      if (!world) continue;
+      const base = findCountryFeature(world, c.iso2, c.iso3);
+      if (!base) continue;
+      features.push({
+        type: "Feature" as const,
+        geometry: base.geometry,
+        properties: {
+          ...base.properties,
+          warmthFill: c.warmthFill,
+          warmthOutline: c.warmthOutline,
+          placeId: c.id,
+        },
+      });
+    } else {
+      if (!usStates) continue;
+      const base = findUsStateFeature(usStates, c.id);
+      if (!base) continue;
+      features.push({
+        type: "Feature" as const,
+        geometry: base.geometry,
+        properties: {
+          ...base.properties,
+          warmthFill: c.warmthFill,
+          warmthOutline: c.warmthOutline,
+          placeId: c.id,
+        },
+      });
+    }
   }
   return { type: "FeatureCollection", features };
 }
 
 function buildTemperatureLabelPoints(
   world: FeatureCollection | null,
+  usStates: FeatureCollection | null,
   countries: SelectedCountry[],
   unit: TemperatureDisplayUnit,
 ): FeatureCollection {
-  if (!world) {
-    return { type: "FeatureCollection", features: [] };
-  }
-
   const features: Feature<Point>[] = [];
   for (const c of countries) {
-    const base = findCountryFeature(world, c.iso2, c.iso3);
-    if (!base) continue;
-    const [lon, lat] = getCountryLabelLngLat(base);
-    const geometry: Point = { type: "Point", coordinates: [lon, lat] };
-    features.push({
-      type: "Feature",
-      geometry,
-      properties: {
-        tempLabel: formatTemperature(c.tempC, unit, 1),
-        iso2: c.iso2,
-      },
-    });
+    if (c.kind === "country") {
+      if (!world) continue;
+      const base = findCountryFeature(world, c.iso2, c.iso3);
+      if (!base) continue;
+      const [lon, lat] = getCountryLabelLngLat(base);
+      const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+      features.push({
+        type: "Feature",
+        geometry,
+        properties: {
+          tempLabel: formatTemperature(c.tempC, unit, 1),
+          placeId: c.id,
+        },
+      });
+    } else {
+      if (!usStates) continue;
+      const base = findUsStateFeature(usStates, c.id);
+      if (!base) continue;
+      const [lon, lat] = getUsStateLabelLngLat(base);
+      const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+      features.push({
+        type: "Feature",
+        geometry,
+        properties: {
+          tempLabel: formatTemperature(c.tempC, unit, 1),
+          placeId: c.id,
+        },
+      });
+    }
   }
   return { type: "FeatureCollection", features };
 }
@@ -130,15 +160,19 @@ export default function GlobeMap() {
   const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
   const mapRef = useRef<MapRef>(null);
   const [world, setWorld] = useState<FeatureCollection | null>(null);
+  const [usStates, setUsStates] = useState<FeatureCollection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const mapStyle = isLight ? MAP_STYLE_LIGHT : MAP_STYLE_DARK;
 
-  const highlight = useMemo(() => buildHighlightData(world, countries), [world, countries]);
+  const highlight = useMemo(
+    () => buildHighlightData(world, usStates, countries),
+    [world, usStates, countries],
+  );
   const labelPoints = useMemo(
-    () => buildTemperatureLabelPoints(world, countries, tempDisplayUnit),
-    [world, countries, tempDisplayUnit],
+    () => buildTemperatureLabelPoints(world, usStates, countries, tempDisplayUnit),
+    [world, usStates, countries, tempDisplayUnit],
   );
 
   const labelPaint = useMemo(
@@ -183,20 +217,25 @@ export default function GlobeMap() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(COUNTRIES_URL);
-        if (!res.ok) throw new Error(`GeoJSON HTTP ${res.status}`);
-        const json: unknown = await res.json();
+        const [resCountries, resUsStates] = await Promise.all([
+          fetch(COUNTRIES_URL),
+          fetch(US_STATES_URL),
+        ]);
+        if (!resCountries.ok) throw new Error(`Countries GeoJSON HTTP ${resCountries.status}`);
+        if (!resUsStates.ok) throw new Error(`U.S. states GeoJSON HTTP ${resUsStates.status}`);
+        const jsonCountries: unknown = await resCountries.json();
+        const jsonUsStates: unknown = await resUsStates.json();
         if (cancelled) return;
-        if (
-          typeof json === "object" &&
-          json !== null &&
-          "type" in json &&
-          (json as { type: string }).type === "FeatureCollection"
-        ) {
-          setWorld(json as FeatureCollection);
-        } else {
+        const okFc = (j: unknown): j is FeatureCollection =>
+          typeof j === "object" &&
+          j !== null &&
+          "type" in j &&
+          (j as { type: string }).type === "FeatureCollection";
+        if (!okFc(jsonCountries) || !okFc(jsonUsStates)) {
           throw new Error("Invalid GeoJSON root");
         }
+        setWorld(jsonCountries);
+        setUsStates(jsonUsStates);
       } catch (e) {
         if (!cancelled) {
           setLoadError(e instanceof Error ? e.message : "Failed to load boundaries");
@@ -208,11 +247,18 @@ export default function GlobeMap() {
     };
   }, []);
 
-  /** Pan/zoom to the most recently added country. */
+  /** Pan/zoom to the most recently added place. */
   useEffect(() => {
-    if (!world || countries.length === 0) return;
+    if (countries.length === 0) return;
     const last = countries[countries.length - 1];
-    const feat = findCountryFeature(world, last.iso2, last.iso3);
+    let feat: Feature<Geometry> | undefined;
+    if (last.kind === "country") {
+      if (!world) return;
+      feat = findCountryFeature(world, last.iso2, last.iso3);
+    } else {
+      if (!usStates) return;
+      feat = findUsStateFeature(usStates, last.id);
+    }
     if (!feat) return;
 
     const map = mapRef.current?.getMap();
@@ -226,7 +272,7 @@ export default function GlobeMap() {
       ],
       { padding: { top: 100, bottom: 100, left: 100, right: 120 }, maxZoom: 5.5, duration: 1400 },
     );
-  }, [world, countries]);
+  }, [world, usStates, countries]);
 
   if (!token) {
     return (
