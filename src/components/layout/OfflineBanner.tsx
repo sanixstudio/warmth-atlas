@@ -1,27 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { WifiOff } from "lucide-react";
+
+function subscribeOnline(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+}
+
+function getOnlineSnapshot() {
+  return typeof navigator !== "undefined" ? navigator.onLine : true;
+}
+
+/** Hide banner during SSR; first client paint uses real {@link Navigator.onLine}. */
+function getOnlineServerSnapshot() {
+  return true;
+}
 
 /**
  * Warns when the device is offline; copy matches {@link PRODUCT_GUARDS.offline}.
  */
 export function OfflineBanner() {
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    setOnline(navigator.onLine);
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
+  const online = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, getOnlineServerSnapshot);
 
   if (online) return null;
 

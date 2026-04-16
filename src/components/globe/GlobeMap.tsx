@@ -5,9 +5,11 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type {
   FillLayerSpecification,
   LineLayerSpecification,
+  Map as MapboxMap,
   SymbolLayerSpecification,
 } from "mapbox-gl";
 import type { Feature, FeatureCollection, Point } from "geojson";
+import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, {
   Layer,
@@ -26,7 +28,8 @@ import { useCountryStore } from "@/lib/store/country-store";
 import type { TemperatureDisplayUnit } from "@/lib/warmth/colorFromTemp";
 import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
-const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
+const MAP_STYLE_DARK = "mapbox://styles/mapbox/dark-v11";
+const MAP_STYLE_LIGHT = "mapbox://styles/mapbox/light-v11";
 const COUNTRIES_URL = "/data/ne_110m_admin_0_countries.geojson";
 
 const fillPaint: NonNullable<FillLayerSpecification["paint"]> = {
@@ -102,17 +105,27 @@ const labelLayout: NonNullable<SymbolLayerSpecification["layout"]> = {
   "text-ignore-placement": true,
 };
 
-const labelPaint: NonNullable<SymbolLayerSpecification["paint"]> = {
+const labelPaintDark: NonNullable<SymbolLayerSpecification["paint"]> = {
   "text-color": "#f8fafc",
   "text-halo-color": "rgba(15, 23, 42, 0.94)",
   "text-halo-width": 2.4,
   "text-halo-blur": 0.35,
 };
 
+const labelPaintLight: NonNullable<SymbolLayerSpecification["paint"]> = {
+  "text-color": "#0f172a",
+  "text-halo-color": "rgba(255, 255, 255, 0.92)",
+  "text-halo-width": 2.2,
+  "text-halo-blur": 0.25,
+};
+
 /**
  * Full-viewport Mapbox globe with country warmth polygons for all selected entries.
  */
 export default function GlobeMap() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
   const countries = useCountryStore((s) => s.countries);
   const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
   const mapRef = useRef<MapRef>(null);
@@ -120,24 +133,51 @@ export default function GlobeMap() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+  const mapStyle = isLight ? MAP_STYLE_LIGHT : MAP_STYLE_DARK;
+
   const highlight = useMemo(() => buildHighlightData(world, countries), [world, countries]);
   const labelPoints = useMemo(
     () => buildTemperatureLabelPoints(world, countries, tempDisplayUnit),
     [world, countries, tempDisplayUnit],
   );
 
+  const labelPaint = useMemo(
+    () => (isLight ? labelPaintLight : labelPaintDark),
+    [isLight],
+  );
+
+  const applyGlobeFog = useCallback((map: MapboxMap | undefined) => {
+    if (!map) return;
+    if (isLight) {
+      map.setFog({
+        range: [0.78, 2],
+        color: "#dde8f5",
+        "high-color": "#f6f9fc",
+        "space-color": "#b8c9dc",
+        "horizon-blend": 0.08,
+        "star-intensity": 0.02,
+      });
+    } else {
+      map.setFog({
+        range: [0.65, 2],
+        color: "#111018",
+        "high-color": "#1b1b2f",
+        "space-color": "#000005",
+        "horizon-blend": 0.06,
+        "star-intensity": 0.12,
+      });
+    }
+  }, [isLight]);
+
   const onMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
-    if (!map) return;
-    map.setFog({
-      range: [0.65, 2],
-      color: "#111018",
-      "high-color": "#1b1b2f",
-      "space-color": "#000005",
-      "horizon-blend": 0.06,
-      "star-intensity": 0.12,
-    });
-  }, []);
+    applyGlobeFog(map);
+  }, [applyGlobeFog]);
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    applyGlobeFog(map);
+  }, [applyGlobeFog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -191,8 +231,8 @@ export default function GlobeMap() {
   if (!token) {
     return (
       <div className="bg-muted text-muted-foreground flex h-full w-full items-center justify-center p-8 text-center text-sm">
-        Set <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5">NEXT_PUBLIC_MAPBOX_TOKEN</code>{" "}
-        in <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5">.env.local</code> (see Mapbox
+        Set <code className="bg-foreground/10 mx-1 rounded px-1.5 py-0.5">NEXT_PUBLIC_MAPBOX_TOKEN</code>{" "}
+        in <code className="bg-foreground/10 mx-1 rounded px-1.5 py-0.5">.env.local</code> (see Mapbox
         account access tokens).
       </div>
     );
@@ -210,7 +250,7 @@ export default function GlobeMap() {
     <Map
       ref={mapRef}
       mapboxAccessToken={token}
-      mapStyle={MAP_STYLE}
+      mapStyle={mapStyle}
       initialViewState={{
         longitude: 0,
         latitude: 18,

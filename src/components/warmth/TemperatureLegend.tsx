@@ -29,7 +29,7 @@ export function TemperatureLegend() {
 
   return (
     <Card
-      className="border-border/60 bg-card/90 pointer-events-none absolute right-2 bottom-[max(4.25rem,calc(env(safe-area-inset-bottom,0px)+3.25rem))] z-10 w-23 max-w-[calc(100vw-1rem)] scale-[0.92] shadow-lg ring-1 ring-white/10 backdrop-blur-md sm:right-4 sm:bottom-6 sm:w-38 sm:max-w-none sm:scale-100 sm:shadow-xl"
+      className="border-border/60 bg-card/90 pointer-events-none absolute right-2 bottom-[max(4.25rem,calc(env(safe-area-inset-bottom,0px)+3.25rem))] z-10 w-23 max-w-[calc(100vw-1rem)] scale-[0.92] shadow-lg ring-1 ring-black/10 backdrop-blur-md sm:right-4 sm:bottom-6 sm:w-38 sm:max-w-none sm:scale-100 sm:shadow-xl dark:ring-white/10"
       aria-label="Warmth scale: temperature color scale for country fill"
     >
       <CardHeader className="hidden gap-0.5 px-4 pb-2 pt-4 text-left sm:block sm:gap-1">
@@ -41,11 +41,11 @@ export function TemperatureLegend() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center space-y-2 px-2 pb-2 pt-2.5 sm:space-y-0 sm:px-4 sm:pb-4 sm:pt-0">
-        <p className="text-muted-foreground hidden max-w-[11rem] text-center text-[10px] leading-snug sm:block">
+        {/* <p className="text-muted-foreground hidden max-w-44 text-center text-[10px] leading-snug sm:block">
           Colors reinforce temperature; use the number labels if reading color alone is difficult. A numeric-only map
           mode may be added later.
-        </p>
-        <div className="flex w-full items-stretch justify-center gap-1 sm:justify-end sm:gap-2.5">
+        </p> */}
+        <div className="flex w-full items-stretch justify-center gap-1 sm:gap-2.5">
           <div className="text-muted-foreground flex min-h-32 flex-col justify-between py-0.5 text-right text-[8px] leading-none tabular-nums sm:min-h-44 sm:text-[11px]">
             <span>{formatTemperature(WARMTH_SCALE_MAX_C, tempDisplayUnit, 0)}</span>
             <span>{formatTemperature(midC, tempDisplayUnit, 0)}</span>

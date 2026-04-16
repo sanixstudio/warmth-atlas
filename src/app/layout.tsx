@@ -27,10 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${display.variable} ${dmSans.variable} dark h-full antialiased`}
-    >
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${dmSans.variable} h-full antialiased`}>
       <body className={`${dmSans.className} min-h-0 flex flex-col font-sans`}>
         <AppProviders>{children}</AppProviders>
       </body>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -29,11 +30,13 @@ export function AppProviders({ children }: Props) {
 
   return (
     <QueryClientProvider client={client}>
-      <TooltipProvider delay={200}>
-        <OfflineBanner />
-        {children}
-      </TooltipProvider>
-      <Toaster richColors position="top-center" />
+      <ThemeProvider>
+        <TooltipProvider delay={200}>
+          <OfflineBanner />
+          {children}
+        </TooltipProvider>
+        <Toaster richColors position="top-center" />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

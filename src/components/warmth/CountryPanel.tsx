@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { LearnDialog } from "@/components/education/LearnDialog";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,13 +142,14 @@ export function CountryPanel() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-white/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl">
+    <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-black/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-white/10">
       <CardHeader className="shrink-0 space-y-1 px-2.5 pb-2 sm:space-y-2 sm:px-4 sm:pb-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <CardTitle className="font-heading text-primary-foreground text-xl tracking-tight sm:text-3xl">
+          <CardTitle className="font-heading text-card-foreground text-xl tracking-tight sm:text-3xl">
             Warmth Atlas
           </CardTitle>
-          <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+          <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
+            <ThemeToggle />
             <LearnDialog />
             <Link
               href="/educators"
@@ -257,10 +259,10 @@ export function CountryPanel() {
                 {[...countries].reverse().map((c) => (
                   <li
                     key={c.iso2}
-                    className="border-border/70 flex items-center gap-2 rounded-xl border bg-white/5 p-2.5 sm:gap-3 sm:p-3"
+                    className="border-border/70 flex items-center gap-2 rounded-xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5"
                   >
                     <span
-                      className="h-9 w-2 shrink-0 self-stretch rounded-full ring-2 ring-white/20 sm:h-10"
+                      className="ring-foreground/15 h-9 w-2 shrink-0 self-stretch rounded-full ring-2 sm:h-10 dark:ring-white/20"
                       style={{ background: c.warmthFill }}
                       aria-hidden
                     />
