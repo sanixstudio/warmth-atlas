@@ -43,7 +43,7 @@ function withWarmth(
 
 export const useCountryStore = create<CountryStore>((set) => ({
   countries: [],
-  tempDisplayUnit: "C",
+  tempDisplayUnit: "F",
   setTempDisplayUnit: (unit) => set({ tempDisplayUnit: unit }),
   upsertCountry: (input) =>
     set((state) => {

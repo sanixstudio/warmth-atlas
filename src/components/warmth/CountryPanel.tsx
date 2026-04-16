@@ -130,22 +130,25 @@ export function CountryPanel() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/92 w-full max-w-md shadow-2xl ring-1 ring-white/10 backdrop-blur-md sm:max-w-md">
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="font-heading text-primary-foreground text-3xl tracking-tight">
+    <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-white/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl">
+      <CardHeader className="shrink-0 space-y-0.5 px-2.5 pb-2 sm:space-y-1 sm:px-4 sm:pb-4">
+        <CardTitle className="font-heading text-primary-foreground text-xl tracking-tight sm:text-3xl">
           Warmth Atlas
         </CardTitle>
-        <CardDescription className="text-base leading-relaxed">
-          Add countries and compare live air temperature at each capital — layered on a 3D globe.
+        <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
+          Live air temperature at each capital, colored on the globe — add countries to compare.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-5">
-        <form onSubmit={onSubmit} className="space-y-3">
-          <Label htmlFor="country-q" className="text-sm font-medium">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-2.5 sm:gap-5 sm:px-4">
+        <form
+          onSubmit={onSubmit}
+          className="max-lg:order-1 shrink-0 space-y-1.5 sm:space-y-3 lg:order-1"
+        >
+          <Label htmlFor="country-q" className="text-xs font-medium sm:text-sm">
             Country name
           </Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
             <Input
               id="country-q"
               value={query}
@@ -153,52 +156,33 @@ export function CountryPanel() {
               placeholder="Try Japan, Brazil, Kenya…"
               autoComplete="off"
               disabled={busy}
-              className="h-11 flex-1 text-base"
+              inputMode="search"
+              enterKeyHint="search"
+              className="min-h-10 flex-1 text-base sm:h-11 sm:min-h-0"
             />
-            <Button type="submit" size="lg" disabled={busy || !query.trim()} className="shrink-0 gap-1.5">
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={busy || !query.trim()}
+              className="min-h-10 w-full shrink-0 gap-1.5 px-3 text-sm touch-manipulation sm:min-h-11 sm:w-auto sm:px-5 sm:text-base"
+            >
+              {busy ? <Loader2 className="size-4 shrink-0 animate-spin" /> : <Plus className="size-4 shrink-0" />}
               Add
             </Button>
           </div>
         </form>
 
-        <div className="space-y-2">
-          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            Display
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={tempDisplayUnit === "C" ? "default" : "secondary"}
-              size="sm"
-              className="flex-1"
-              onClick={() => setTempDisplayUnit("C")}
-            >
-              °C
-            </Button>
-            <Button
-              type="button"
-              variant={tempDisplayUnit === "F" ? "default" : "secondary"}
-              size="sm"
-              className="flex-1"
-              onClick={() => setTempDisplayUnit("F")}
-            >
-              °F
-            </Button>
-          </div>
-        </div>
-
         {candidates && candidates.length > 1 ? (
-          <div className="space-y-2">
+          <div className="max-lg:order-2 shrink-0 space-y-2 lg:order-3">
             <p className="text-muted-foreground text-sm font-medium">Which one?</p>
-            <ScrollArea className="max-h-44 rounded-lg border pr-2">
+            <ScrollArea className="max-h-32 rounded-lg border pr-1 sm:max-h-44 sm:pr-2">
               <ul className="space-y-1 p-1">
                 {candidates.map((c) => (
                   <li key={`${c.iso2}-${c.name}`}>
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-auto w-full justify-start py-2 text-left"
+                      className="min-h-10 w-full touch-manipulation justify-start py-2.5 text-left sm:min-h-0 sm:py-2"
                       onClick={() => pickCandidate(c)}
                       disabled={busy}
                     >
@@ -214,53 +198,52 @@ export function CountryPanel() {
           </div>
         ) : null}
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        <div className="max-lg:order-3 flex min-h-0 flex-1 flex-col lg:order-4">
+          <div className="mb-1.5 flex items-center justify-between gap-2 sm:mb-2">
+            <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase sm:text-xs">
               On the map ({countries.length})
             </span>
             {countries.length > 0 ? (
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-destructive h-8 gap-1"
+                className="text-muted-foreground hover:text-destructive min-h-9 touch-manipulation gap-1 px-2 text-xs sm:h-8 sm:min-h-0 sm:text-sm"
                 onClick={() => {
                   clearAll();
                   toast.message("Cleared all countries.");
                 }}
               >
-                <X className="size-3.5" />
+                <X className="size-3.5 shrink-0" />
                 Clear all
               </Button>
             ) : null}
           </div>
 
           {countries.length === 0 ? (
-            <p className="text-muted-foreground border-border/50 rounded-lg border border-dashed p-4 text-sm">
+            <p className="text-muted-foreground shrink-0 rounded-lg border border-dashed border-border/50 p-2.5 text-xs leading-relaxed sm:p-4 sm:text-sm">
               Nothing selected yet. Add a country to paint it by temperature and fly the globe there.
             </p>
           ) : (
-            <ScrollArea className="h-[min(40vh,320px)] pr-3">
+            <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
               <ul className="space-y-2 pb-1">
                 {[...countries].reverse().map((c) => (
                   <li
                     key={c.iso2}
-                    className="border-border/70 flex items-center gap-3 rounded-xl border bg-white/5 p-3"
+                    className="border-border/70 flex items-center gap-2 rounded-xl border bg-white/5 p-2.5 sm:gap-3 sm:p-3"
                   >
                     <span
-                      className="h-10 w-2 shrink-0 rounded-full ring-2 ring-white/20"
+                      className="h-9 w-2 shrink-0 self-stretch rounded-full ring-2 ring-white/20 sm:h-10"
                       style={{ background: c.warmthFill }}
                       aria-hidden
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate font-semibold">{c.name}</span>
+                    <div className="min-w-0 flex-1 py-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="truncate text-[15px] font-semibold sm:text-base">{c.name}</span>
                         <Badge variant="secondary" className="font-mono text-[10px] uppercase">
                           {c.iso2}
                         </Badge>
                       </div>
-                      <p className="text-muted-foreground truncate text-xs">
+                      <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
                         {c.capital} · {formatTemperature(c.tempC, tempDisplayUnit)}
                       </p>
                     </div>
@@ -268,7 +251,7 @@ export function CountryPanel() {
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="text-muted-foreground hover:text-destructive shrink-0"
+                      className="text-muted-foreground hover:text-destructive size-11 shrink-0 touch-manipulation sm:size-9"
                       onClick={() => {
                         removeCountry(c.iso2);
                         toast.message(`${c.name} removed`);
@@ -283,9 +266,35 @@ export function CountryPanel() {
             </ScrollArea>
           )}
         </div>
+
+        <div className="max-lg:order-4 mt-auto shrink-0 space-y-1.5 pt-1 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-2">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            Display
+          </span>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+            <Button
+              type="button"
+              variant={tempDisplayUnit === "C" ? "default" : "secondary"}
+              className="min-h-10 flex-1 text-sm touch-manipulation sm:h-9 sm:min-h-0 sm:text-base"
+              onClick={() => setTempDisplayUnit("C")}
+              aria-pressed={tempDisplayUnit === "C"}
+            >
+              °C
+            </Button>
+            <Button
+              type="button"
+              variant={tempDisplayUnit === "F" ? "default" : "secondary"}
+              className="min-h-10 flex-1 text-sm touch-manipulation sm:h-9 sm:min-h-0 sm:text-base"
+              onClick={() => setTempDisplayUnit("F")}
+              aria-pressed={tempDisplayUnit === "F"}
+            >
+              °F
+            </Button>
+          </div>
+        </div>
       </CardContent>
 
-      <CardFooter className="text-muted-foreground border-t pt-4 text-xs leading-snug">
+      <CardFooter className="text-muted-foreground hidden shrink-0 border-t px-4 py-3 text-xs leading-snug sm:block">
         Temperatures from Open-Meteo (current). Boundaries: Natural Earth. Country data: REST Countries.
       </CardFooter>
     </Card>
