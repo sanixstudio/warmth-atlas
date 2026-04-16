@@ -1,9 +1,14 @@
+import centroid from "@turf/centroid";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import bbox from "@turf/bbox";
 
 type NEProperties = {
   ISO_A2?: string;
   ADM0_A3?: string;
+  /** Natural Earth map-label longitude (degrees). */
+  LABEL_X?: number;
+  /** Natural Earth map-label latitude (degrees). */
+  LABEL_Y?: number;
 };
 
 /**
@@ -41,4 +46,25 @@ export function findCountryFeature(
 export function featureBBox(feature: Feature): [number, number, number, number] {
   const b = bbox(feature);
   return [b[0], b[1], b[2], b[3]];
+}
+
+/**
+ * Longitude/latitude for a country label: Natural Earth’s interior label point when present,
+ * otherwise centroid of the boundary geometry.
+ */
+export function getCountryLabelLngLat(feature: Feature): [number, number] {
+  const p = feature.properties as NEProperties | null;
+  if (
+    p &&
+    typeof p.LABEL_X === "number" &&
+    typeof p.LABEL_Y === "number" &&
+    Number.isFinite(p.LABEL_X) &&
+    Number.isFinite(p.LABEL_Y)
+  ) {
+    return [p.LABEL_X, p.LABEL_Y];
+  }
+
+  const c = centroid(feature);
+  const coords = c.geometry.coordinates;
+  return [coords[0], coords[1]];
 }

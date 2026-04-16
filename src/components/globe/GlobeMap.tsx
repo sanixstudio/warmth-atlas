@@ -2,8 +2,12 @@
 
 import "mapbox-gl/dist/mapbox-gl.css";
 
-import type { FillLayerSpecification, LineLayerSpecification } from "mapbox-gl";
-import type { FeatureCollection } from "geojson";
+import type {
+  FillLayerSpecification,
+  LineLayerSpecification,
+  SymbolLayerSpecification,
+} from "mapbox-gl";
+import type { Feature, FeatureCollection, Point } from "geojson";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, {
   Layer,
@@ -15,9 +19,12 @@ import Map, {
 import {
   featureBBox,
   findCountryFeature,
+  getCountryLabelLngLat,
 } from "@/lib/geo/country-features";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
+import type { TemperatureDisplayUnit } from "@/lib/warmth/colorFromTemp";
+import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
 const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
 const COUNTRIES_URL = "/data/ne_110m_admin_0_countries.geojson";
@@ -59,17 +66,65 @@ function buildHighlightData(
   return { type: "FeatureCollection", features };
 }
 
+function buildTemperatureLabelPoints(
+  world: FeatureCollection | null,
+  countries: SelectedCountry[],
+  unit: TemperatureDisplayUnit,
+): FeatureCollection {
+  if (!world) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const features: Feature<Point>[] = [];
+  for (const c of countries) {
+    const base = findCountryFeature(world, c.iso2, c.iso3);
+    if (!base) continue;
+    const [lon, lat] = getCountryLabelLngLat(base);
+    const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+    features.push({
+      type: "Feature",
+      geometry,
+      properties: {
+        tempLabel: formatTemperature(c.tempC, unit, 1),
+        iso2: c.iso2,
+      },
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+const labelLayout: NonNullable<SymbolLayerSpecification["layout"]> = {
+  "text-field": ["get", "tempLabel"],
+  "text-size": 15,
+  "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
+  "text-anchor": "center",
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
+};
+
+const labelPaint: NonNullable<SymbolLayerSpecification["paint"]> = {
+  "text-color": "#f8fafc",
+  "text-halo-color": "rgba(15, 23, 42, 0.94)",
+  "text-halo-width": 2.4,
+  "text-halo-blur": 0.35,
+};
+
 /**
  * Full-viewport Mapbox globe with country warmth polygons for all selected entries.
  */
 export default function GlobeMap() {
   const countries = useCountryStore((s) => s.countries);
+  const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
   const mapRef = useRef<MapRef>(null);
   const [world, setWorld] = useState<FeatureCollection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const highlight = useMemo(() => buildHighlightData(world, countries), [world, countries]);
+  const labelPoints = useMemo(
+    () => buildTemperatureLabelPoints(world, countries, tempDisplayUnit),
+    [world, countries, tempDisplayUnit],
+  );
 
   const onMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
@@ -177,6 +232,9 @@ export default function GlobeMap() {
           layout={{ "line-join": "round" }}
           paint={linePaint}
         />
+      </Source>
+      <Source id="warmth-temperature-labels" type="geojson" data={labelPoints}>
+        <Layer id="warmth-temp-symbols" type="symbol" layout={labelLayout} paint={labelPaint} />
       </Source>
     </Map>
   );
