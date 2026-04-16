@@ -1,0 +1,183 @@
+"use client";
+
+import "mapbox-gl/dist/mapbox-gl.css";
+
+import type { FillLayerSpecification, LineLayerSpecification } from "mapbox-gl";
+import type { FeatureCollection } from "geojson";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Map, {
+  Layer,
+  NavigationControl,
+  type MapRef,
+  Source,
+} from "react-map-gl/mapbox";
+
+import {
+  featureBBox,
+  findCountryFeature,
+} from "@/lib/geo/country-features";
+import type { SelectedCountry } from "@/lib/store/country-store";
+import { useCountryStore } from "@/lib/store/country-store";
+
+const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
+const COUNTRIES_URL = "/data/ne_110m_admin_0_countries.geojson";
+
+const fillPaint: NonNullable<FillLayerSpecification["paint"]> = {
+  "fill-color": ["get", "warmthFill"],
+  "fill-opacity": 1,
+};
+
+const linePaint: NonNullable<LineLayerSpecification["paint"]> = {
+  "line-color": ["get", "warmthOutline"],
+  "line-width": 2.5,
+  "line-opacity": 0.95,
+};
+
+function buildHighlightData(
+  world: FeatureCollection | null,
+  countries: SelectedCountry[],
+): FeatureCollection {
+  if (!world) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const features = [];
+  for (const c of countries) {
+    const base = findCountryFeature(world, c.iso2, c.iso3);
+    if (!base) continue;
+    features.push({
+      type: "Feature" as const,
+      geometry: base.geometry,
+      properties: {
+        ...base.properties,
+        warmthFill: c.warmthFill,
+        warmthOutline: c.warmthOutline,
+        iso2: c.iso2,
+      },
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+/**
+ * Full-viewport Mapbox globe with country warmth polygons for all selected entries.
+ */
+export default function GlobeMap() {
+  const countries = useCountryStore((s) => s.countries);
+  const mapRef = useRef<MapRef>(null);
+  const [world, setWorld] = useState<FeatureCollection | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  const highlight = useMemo(() => buildHighlightData(world, countries), [world, countries]);
+
+  const onMapLoad = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    map.setFog({
+      range: [0.65, 2],
+      color: "#111018",
+      "high-color": "#1b1b2f",
+      "space-color": "#000005",
+      "horizon-blend": 0.06,
+      "star-intensity": 0.12,
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(COUNTRIES_URL);
+        if (!res.ok) throw new Error(`GeoJSON HTTP ${res.status}`);
+        const json: unknown = await res.json();
+        if (cancelled) return;
+        if (
+          typeof json === "object" &&
+          json !== null &&
+          "type" in json &&
+          (json as { type: string }).type === "FeatureCollection"
+        ) {
+          setWorld(json as FeatureCollection);
+        } else {
+          throw new Error("Invalid GeoJSON root");
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : "Failed to load boundaries");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Pan/zoom to the most recently added country. */
+  useEffect(() => {
+    if (!world || countries.length === 0) return;
+    const last = countries[countries.length - 1];
+    const feat = findCountryFeature(world, last.iso2, last.iso3);
+    if (!feat) return;
+
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const b = featureBBox(feat);
+    map.fitBounds(
+      [
+        [b[0], b[1]],
+        [b[2], b[3]],
+      ],
+      { padding: { top: 100, bottom: 100, left: 100, right: 120 }, maxZoom: 5.5, duration: 1400 },
+    );
+  }, [world, countries]);
+
+  if (!token) {
+    return (
+      <div className="bg-muted text-muted-foreground flex h-full w-full items-center justify-center p-8 text-center text-sm">
+        Set <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5">NEXT_PUBLIC_MAPBOX_TOKEN</code>{" "}
+        in <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5">.env.local</code> (see Mapbox
+        account access tokens).
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="bg-destructive/15 text-destructive-foreground flex h-full w-full items-center justify-center p-6 text-center text-sm">
+        {loadError}
+      </div>
+    );
+  }
+
+  return (
+    <Map
+      ref={mapRef}
+      mapboxAccessToken={token}
+      mapStyle={MAP_STYLE}
+      initialViewState={{
+        longitude: 0,
+        latitude: 18,
+        zoom: 1.35,
+        pitch: 0,
+        bearing: 0,
+      }}
+      projection="globe"
+      reuseMaps
+      style={{ width: "100%", height: "100%" }}
+      onLoad={onMapLoad}
+    >
+      <NavigationControl position="top-left" showCompass={false} />
+      <Source id="warmth-countries" type="geojson" data={highlight}>
+        <Layer id="warmth-fill" type="fill" paint={fillPaint} />
+        <Layer
+          id="warmth-outline"
+          type="line"
+          layout={{ "line-join": "round" }}
+          paint={linePaint}
+        />
+      </Source>
+    </Map>
+  );
+}
