@@ -1,10 +1,12 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Info, Loader2, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { LearnDialog } from "@/components/education/LearnDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatObservationTime } from "@/lib/format/observation-time";
 import type { CountrySearchResult } from "@/lib/schemas/country";
 import { countrySearchResponseSchema } from "@/lib/schemas/country";
 import { weatherCurrentResponseSchema } from "@/lib/schemas/weather";
@@ -38,7 +42,10 @@ async function fetchSearch(q: string): Promise<CountrySearchResult[]> {
   return parsed.data.results;
 }
 
-async function fetchWeather(lat: number, lon: number): Promise<number> {
+async function fetchWeather(
+  lat: number,
+  lon: number,
+): Promise<{ temperatureC: number; observedAt: string | null }> {
   const res = await fetch(
     `/api/weather/current?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}`,
   );
@@ -51,7 +58,10 @@ async function fetchWeather(lat: number, lon: number): Promise<number> {
   if (!parsed.success) {
     throw new Error("Unexpected weather response");
   }
-  return parsed.data.temperatureC;
+  return {
+    temperatureC: parsed.data.temperatureC,
+    observedAt: parsed.data.observedAt ?? null,
+  };
 }
 
 /**
@@ -70,10 +80,10 @@ export function CountryPanel() {
 
   const addCountry = useMutation({
     mutationFn: async (country: CountrySearchResult) => {
-      const tempC = await fetchWeather(country.lat, country.lon);
-      return { country, tempC };
+      const { temperatureC, observedAt } = await fetchWeather(country.lat, country.lon);
+      return { country, tempC: temperatureC, observedAt };
     },
-    onSuccess: ({ country, tempC }) => {
+    onSuccess: ({ country, tempC, observedAt }) => {
       upsertCountry({
         iso2: country.iso2,
         iso3: country.iso3,
@@ -82,6 +92,7 @@ export function CountryPanel() {
         lat: country.lat,
         lon: country.lon,
         tempC,
+        observedAt,
       });
       const unit = useCountryStore.getState().tempDisplayUnit;
       toast.success(`${country.name} added`, {
@@ -131,10 +142,27 @@ export function CountryPanel() {
 
   return (
     <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-white/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl">
-      <CardHeader className="shrink-0 space-y-0.5 px-2.5 pb-2 sm:space-y-1 sm:px-4 sm:pb-4">
-        <CardTitle className="font-heading text-primary-foreground text-xl tracking-tight sm:text-3xl">
-          Warmth Atlas
-        </CardTitle>
+      <CardHeader className="shrink-0 space-y-1 px-2.5 pb-2 sm:space-y-2 sm:px-4 sm:pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <CardTitle className="font-heading text-primary-foreground text-xl tracking-tight sm:text-3xl">
+            Warmth Atlas
+          </CardTitle>
+          <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+            <LearnDialog />
+            <Link
+              href="/educators"
+              className="text-primary text-xs font-medium underline-offset-4 hover:underline sm:text-sm"
+            >
+              Educators
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-muted-foreground text-xs underline-offset-4 hover:underline sm:text-sm"
+            >
+              Privacy
+            </Link>
+          </div>
+        </div>
         <CardDescription className="line-clamp-2 text-xs leading-snug sm:line-clamp-none sm:text-base sm:leading-relaxed">
           Live air temperature at each capital, colored on the globe — add countries to compare.
         </CardDescription>
@@ -246,7 +274,38 @@ export function CountryPanel() {
                       <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
                         {c.capital} · {formatTemperature(c.tempC, tempDisplayUnit)}
                       </p>
+                      {c.observedAt ? (
+                        <p className="text-muted-foreground/85 mt-0.5 max-w-full truncate text-[10px] sm:text-xs">
+                          Observed {formatObservationTime(c.observedAt)} (capital area, Open-Meteo)
+                        </p>
+                      ) : null}
                     </div>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-foreground size-9 shrink-0 touch-manipulation sm:size-8"
+                            aria-label={`Data details for ${c.name}`}
+                          >
+                            <Info className="size-4" />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent side="bottom" className="max-w-[min(90vw,22rem)] text-left text-xs leading-relaxed">
+                        <p className="font-medium">Current air temperature (2 m)</p>
+                        <p className="text-muted-foreground mt-1">
+                          Near {c.capital} coordinates from REST Countries. Source: Open-Meteo (current).
+                          {c.observedAt ? (
+                            <> Timestamp: {formatObservationTime(c.observedAt)}.</>
+                          ) : (
+                            <> Observation time not returned for this request.</>
+                          )}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                     <Button
                       type="button"
                       size="icon"

@@ -40,8 +40,12 @@ export function TemperatureLegend() {
           Air temp at capital (°{tempDisplayUnit}) matches fill color.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center px-2 pb-2 pt-2.5 sm:items-stretch sm:px-4 sm:pb-4 sm:pt-0">
-        <div className="flex items-stretch justify-center gap-1 sm:justify-end sm:gap-2.5">
+      <CardContent className="flex flex-col items-center justify-center space-y-2 px-2 pb-2 pt-2.5 sm:space-y-0 sm:px-4 sm:pb-4 sm:pt-0">
+        <p className="text-muted-foreground hidden max-w-[11rem] text-center text-[10px] leading-snug sm:block">
+          Colors reinforce temperature; use the number labels if reading color alone is difficult. A numeric-only map
+          mode may be added later.
+        </p>
+        <div className="flex w-full items-stretch justify-center gap-1 sm:justify-end sm:gap-2.5">
           <div className="text-muted-foreground flex min-h-32 flex-col justify-between py-0.5 text-right text-[8px] leading-none tabular-nums sm:min-h-44 sm:text-[11px]">
             <span>{formatTemperature(WARMTH_SCALE_MAX_C, tempDisplayUnit, 0)}</span>
             <span>{formatTemperature(midC, tempDisplayUnit, 0)}</span>

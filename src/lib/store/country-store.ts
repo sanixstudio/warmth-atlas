@@ -16,6 +16,8 @@ export type SelectedCountry = {
   lon: number;
   /** Canonical stored value for warmth mapping */
   tempC: number;
+  /** ISO 8601 observation time from weather API when provided */
+  observedAt: string | null;
   warmthFill: string;
   warmthOutline: string;
 };
@@ -26,7 +28,9 @@ type CountryStore = {
   tempDisplayUnit: TemperatureDisplayUnit;
   setTempDisplayUnit: (unit: TemperatureDisplayUnit) => void;
   /** Add or replace by ISO2; recompute warmth from temperature. */
-  upsertCountry: (input: Omit<SelectedCountry, "warmthFill" | "warmthOutline">) => void;
+  upsertCountry: (
+    input: Omit<SelectedCountry, "warmthFill" | "warmthOutline">,
+  ) => void;
   removeCountry: (iso2: string) => void;
   clearAll: () => void;
 };
@@ -36,6 +40,7 @@ function withWarmth(
 ): SelectedCountry {
   return {
     ...input,
+    observedAt: input.observedAt ?? null,
     warmthFill: colorFromTempCelsius(input.tempC),
     warmthOutline: outlineColorFromTempCelsius(input.tempC),
   };
