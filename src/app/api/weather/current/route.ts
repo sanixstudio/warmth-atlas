@@ -5,6 +5,9 @@ import {
   openMeteoCurrentSchema,
   weatherCurrentResponseSchema,
 } from "@/lib/schemas/weather";
+import { clientKeyFromRequest, checkRateLimit } from "@/lib/security/simple-rate-limit";
+
+const WEATHER_RATE = { max: 120, windowMs: 60_000 } as const; // 120 requests per minute
 
 const querySchema = z.object({
   lat: z.coerce.number().gte(-90).lte(90),
@@ -13,6 +16,10 @@ const querySchema = z.object({
 
 /** Cached current temperature from Open-Meteo (capital or given point). */
 export async function GET(request: Request) {
+  if (!checkRateLimit(`weather:${clientKeyFromRequest(request)}`, WEATHER_RATE)) {
+    return NextResponse.json({ error: "Too many weather requests. Try again in a minute." }, { status: 429 });
+  }
+
   const url = new URL(request.url);
   const parsed = querySchema.safeParse({
     lat: url.searchParams.get("lat"),

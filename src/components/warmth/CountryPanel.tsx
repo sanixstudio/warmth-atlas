@@ -1,74 +1,35 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { Info, ListChecks, Loader2, Plus, Trash2, X } from "lucide-react";
+import { isCancelledError, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ListChecks, Loader2, Plus, X } from "lucide-react";
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useShallow } from "zustand/react/shallow";
 
 import { LearnDialog } from "@/components/education/LearnDialog";
 import { PlaceFlagImg } from "@/components/warmth/PlaceFlagImg";
+import { SelectedPlaceRow } from "@/components/warmth/SelectedPlaceRow";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  // CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatObservationTime } from "@/lib/format/observation-time";
-import { placeSearchResponseSchema, type PlaceSearchResult } from "@/lib/schemas/place";
-import { weatherCurrentResponseSchema } from "@/lib/schemas/weather";
+import { fetchCurrentWeather, fetchPlaceSearch } from "@/lib/api/warmth-client";
+import type { PlaceSearchResult } from "@/lib/schemas/place";
+import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
 import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
-async function fetchSearch(q: string): Promise<PlaceSearchResult[]> {
-  const res = await fetch(`/api/countries/search?q=${encodeURIComponent(q)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(typeof err.error === "string" ? err.error : "Search failed");
-  }
-  const json: unknown = await res.json();
-  const parsed = placeSearchResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new Error("Unexpected search response");
-  }
-  return parsed.data.results;
-}
-
-async function fetchWeather(
-  lat: number,
-  lon: number,
-): Promise<{ temperatureC: number; observedAt: string | null }> {
-  const res = await fetch(
-    `/api/weather/current?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}`,
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(typeof err.error === "string" ? err.error : "Weather failed");
-  }
-  const json: unknown = await res.json();
-  const parsed = weatherCurrentResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new Error("Unexpected weather response");
-  }
-  return {
-    temperatureC: parsed.data.temperatureC,
-    observedAt: parsed.data.observedAt ?? null,
-  };
-}
+const SEARCH_STALE_MS = 10 * 60_000;
+const WEATHER_STALE_MS = 2 * 60_000;
 
 /**
  * Search, disambiguation list, unit toggle, and stacked country rows with remove/clear.
  */
 export function CountryPanel() {
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   /** Phrase shown when several matches need picking (input is cleared after search). */
   const [choiceMatchPhrase, setChoiceMatchPhrase] = useState("");
@@ -80,16 +41,29 @@ export function CountryPanel() {
     choicePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [candidates]);
 
-  const countries = useCountryStore((s) => s.countries);
-  const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
-  const setTempDisplayUnit = useCountryStore((s) => s.setTempDisplayUnit);
-  const upsertCountry = useCountryStore((s) => s.upsertCountry);
-  const removeCountry = useCountryStore((s) => s.removeCountry);
-  const clearAll = useCountryStore((s) => s.clearAll);
+  const { countries, tempDisplayUnit, setTempDisplayUnit, upsertCountry, removeCountry, clearAll } =
+    useCountryStore(
+      useShallow((s) => ({
+        countries: s.countries,
+        tempDisplayUnit: s.tempDisplayUnit,
+        setTempDisplayUnit: s.setTempDisplayUnit,
+        upsertCountry: s.upsertCountry,
+        removeCountry: s.removeCountry,
+        clearAll: s.clearAll,
+      })),
+    );
 
   const addCountry = useMutation({
     mutationFn: async (place: PlaceSearchResult) => {
-      const { temperatureC, observedAt } = await fetchWeather(place.lat, place.lon);
+      await queryClient.cancelQueries({
+        predicate: (q) => q.queryKey[0] === "weather-current",
+      });
+      const { temperatureC, observedAt } = await queryClient.fetchQuery({
+        queryKey: ["weather-current", place.lat, place.lon] as const,
+        queryFn: ({ signal }) => fetchCurrentWeather(place.lat, place.lon, signal),
+        staleTime: WEATHER_STALE_MS,
+        gcTime: 15 * 60_000,
+      });
       return { place, tempC: temperatureC, observedAt };
     },
     onSuccess: ({ place, tempC, observedAt }) => {
@@ -115,12 +89,24 @@ export function CountryPanel() {
       });
     },
     onError: (e: Error) => {
+      if (isCancelledError(e)) return;
       toast.error(e.message ?? "Could not add country");
     },
   });
 
   const searchMutation = useMutation({
-    mutationFn: async (raw: string) => fetchSearch(raw.trim()),
+    mutationFn: async (raw: string) => {
+      const q = raw.trim();
+      await queryClient.cancelQueries({
+        predicate: (query) => query.queryKey[0] === "place-search",
+      });
+      return queryClient.fetchQuery({
+        queryKey: ["place-search", q] as const,
+        queryFn: ({ signal }) => fetchPlaceSearch(q, signal),
+        staleTime: SEARCH_STALE_MS,
+        gcTime: 30 * 60_000,
+      });
+    },
     onSuccess: (results, raw) => {
       const phrase = raw.trim();
       setQuery("");
@@ -140,6 +126,7 @@ export function CountryPanel() {
       setCandidates(results);
     },
     onError: (e: Error) => {
+      if (isCancelledError(e)) return;
       setCandidates(null);
       setChoiceMatchPhrase("");
       toast.error(e.message ?? "Search failed");
@@ -148,18 +135,37 @@ export function CountryPanel() {
 
   const busy = searchMutation.isPending || addCountry.isPending;
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!query.trim() || busy) return;
-    searchMutation.mutate(query);
-  }
+  const onSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!query.trim() || busy) return;
+      searchMutation.mutate(query);
+    },
+    [query, busy, searchMutation],
+  );
 
-  function pickCandidate(c: PlaceSearchResult) {
-    setCandidates(null);
-    setChoiceMatchPhrase("");
-    setQuery("");
-    addCountry.mutate(c);
-  }
+  const pickCandidate = useCallback(
+    (c: PlaceSearchResult) => {
+      setCandidates(null);
+      setChoiceMatchPhrase("");
+      setQuery("");
+      addCountry.mutate(c);
+    },
+    [addCountry],
+  );
+
+  const handleRemovePlace = useCallback(
+    (place: SelectedCountry) => {
+      removeCountry(place.id);
+      toast.message(`${place.name} removed`);
+    },
+    [removeCountry],
+  );
+
+  const handleClearAll = useCallback(() => {
+    clearAll();
+    toast.message("Cleared all places.");
+  }, [clearAll]);
 
   return (
     <Card className="border-border/60 bg-card/92 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden py-2 shadow-xl ring-1 ring-black/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-white/10">
@@ -275,10 +281,7 @@ export function CountryPanel() {
                 type="button"
                 variant="ghost"
                 className="text-muted-foreground hover:text-destructive min-h-9 touch-manipulation gap-1 px-2 text-xs sm:h-8 sm:min-h-0 sm:text-sm"
-                onClick={() => {
-                  clearAll();
-                  toast.message("Cleared all places.");
-                }}
+                onClick={handleClearAll}
               >
                 <X className="size-3.5 shrink-0" />
                 Clear all
@@ -294,84 +297,12 @@ export function CountryPanel() {
             <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
               <ul className="space-y-2 pb-1">
                 {[...countries].reverse().map((c) => (
-                  <li
+                  <SelectedPlaceRow
                     key={c.id}
-                    className="border-border/70 flex items-center gap-2 rounded-xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5"
-                  >
-                    <PlaceFlagImg place={c} className="!size-7 shrink-0 sm:!size-8" />
-                    <span
-                      className="ring-foreground/15 h-9 w-2 shrink-0 self-stretch rounded-full ring-2 sm:h-10 dark:ring-white/20"
-                      style={{ background: c.warmthFill }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1 py-0.5">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="truncate text-[15px] font-semibold sm:text-base">{c.name}</span>
-                        <Badge variant="secondary" className="font-mono text-[10px] uppercase">
-                          {c.kind === "country" ? c.iso2 : c.id}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
-                        {c.kind === "country"
-                          ? `${c.capital} · ${formatTemperature(c.tempC, tempDisplayUnit)}`
-                          : `Natural Earth reference · ${formatTemperature(c.tempC, tempDisplayUnit)}`}
-                      </p>
-                      {c.observedAt ? (
-                        <p className="text-muted-foreground/85 mt-0.5 max-w-full truncate text-[10px] sm:text-xs">
-                          Observed {formatObservationTime(c.observedAt)}
-                          {c.kind === "country" ? " (capital area, Open-Meteo)" : " (NE reference, Open-Meteo)"}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-foreground size-9 shrink-0 touch-manipulation sm:size-8"
-                            aria-label={`Data details for ${c.name}`}
-                          >
-                            <Info className="size-4" />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent side="bottom" className="max-w-[min(90vw,22rem)] text-left text-xs leading-relaxed">
-                        <p className="font-medium">Current air temperature (2 m)</p>
-                        <p className="text-muted-foreground mt-1">
-                          {c.kind === "country" ? (
-                            <>
-                              Near {c.capital} coordinates from REST Countries. Source: Open-Meteo (current).
-                            </>
-                          ) : (
-                            <>
-                              Natural Earth reference coordinates for this U.S. state (not the legislative
-                              capital). Source: Open-Meteo (current).
-                            </>
-                          )}
-                          {c.observedAt ? (
-                            <> Timestamp: {formatObservationTime(c.observedAt)}.</>
-                          ) : (
-                            <> Observation time not returned for this request.</>
-                          )}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="text-muted-foreground hover:text-destructive size-11 shrink-0 touch-manipulation sm:size-9"
-                      onClick={() => {
-                        removeCountry(c.id);
-                        toast.message(`${c.name} removed`);
-                      }}
-                      aria-label={`Remove ${c.name}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </li>
+                    place={c}
+                    tempDisplayUnit={tempDisplayUnit}
+                    onRemove={handleRemovePlace}
+                  />
                 ))}
               </ul>
             </ScrollArea>

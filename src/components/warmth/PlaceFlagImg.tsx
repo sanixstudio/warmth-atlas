@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { PlaceSearchResult } from "@/lib/schemas/place";
@@ -19,7 +19,7 @@ type Props = {
 /**
  * Flag image from [flagcdn.com](https://flagcdn.com) (PNG). Falls back on error.
  */
-export function PlaceFlagImg(props: Props) {
+export const PlaceFlagImg = memo(function PlaceFlagImg(props: Props) {
   const primary =
     "place" in props ? flagCdnUrlFromSelected(props.place) : flagCdnUrlFromSearchResult(props.candidate);
   const fallback =
@@ -52,4 +52,4 @@ export function PlaceFlagImg(props: Props) {
       )}
     />
   );
-}
+});

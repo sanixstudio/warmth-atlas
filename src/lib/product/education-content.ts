@@ -48,6 +48,7 @@ export const PRODUCT_GUARDS = {
       "Country outlines and names come from open geographic and reference datasets; weather is computed for the capital point Open-Meteo exposes for “current” conditions.",
       "Map attribution appears on the map (Mapbox); we list software and data sources in Learn and on the Educators page.",
       "Flag thumbnails in the list load from flagcdn.com; labels on the globe may combine regional-indicator emoji with the temperature text—rendering can vary slightly by device.",
+      "Server routes apply basic per-IP rate limits to reduce abuse of upstream weather and country search APIs; very heavy classroom use on one IP may occasionally see a short retry window.",
     ],
   },
   accessibility: {

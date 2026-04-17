@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { parseRestCountriesArray } from "@/lib/schemas/country";
 import { placeSearchResponseSchema } from "@/lib/schemas/place";
+import { clientKeyFromRequest, checkRateLimit } from "@/lib/security/simple-rate-limit";
 import { searchUsStates } from "@/lib/search/us-states-search";
+
+const SEARCH_RATE = { max: 60, windowMs: 60_000 } as const; // 60 requests per minute
 
 const querySchema = z.object({
   q: z.string().min(2, "Use at least 2 characters").max(120),
@@ -13,6 +16,10 @@ const querySchema = z.object({
  * Proxies REST Countries name search and returns normalized candidates for the client.
  */
 export async function GET(request: Request) {
+  if (!checkRateLimit(`search:${clientKeyFromRequest(request)}`, SEARCH_RATE)) {
+    return NextResponse.json({ error: "Too many searches. Try again in a minute." }, { status: 429 });
+  }
+
   const url = new URL(request.url);
   const parsed = querySchema.safeParse({ q: url.searchParams.get("q") ?? "" });
   if (!parsed.success) {

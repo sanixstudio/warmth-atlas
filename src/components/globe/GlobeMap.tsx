@@ -10,7 +10,8 @@ import type {
 } from "mapbox-gl";
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import Map, {
   Layer,
   NavigationControl,
@@ -61,7 +62,6 @@ function buildHighlightData(
         type: "Feature" as const,
         geometry: base.geometry,
         properties: {
-          ...base.properties,
           warmthFill: c.warmthFill,
           warmthOutline: c.warmthOutline,
           placeId: c.id,
@@ -75,7 +75,6 @@ function buildHighlightData(
         type: "Feature" as const,
         geometry: base.geometry,
         properties: {
-          ...base.properties,
           warmthFill: c.warmthFill,
           warmthOutline: c.warmthOutline,
           placeId: c.id,
@@ -158,12 +157,18 @@ const labelPaintLight: NonNullable<SymbolLayerSpecification["paint"]> = {
 /**
  * Full-viewport Mapbox globe with country warmth polygons for all selected entries.
  */
-export default function GlobeMap() {
+function GlobeMap() {
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
 
-  const countries = useCountryStore((s) => s.countries);
-  const tempDisplayUnit = useCountryStore((s) => s.tempDisplayUnit);
+  const { countries, tempDisplayUnit } = useCountryStore(
+    useShallow((s) => ({ countries: s.countries, tempDisplayUnit: s.tempDisplayUnit })),
+  );
+
+  const flyTargetKey = useMemo(() => {
+    const last = countries.at(-1);
+    return last ? `${last.kind}:${last.id}` : "";
+  }, [countries]);
   const mapRef = useRef<MapRef>(null);
   const [world, setWorld] = useState<FeatureCollection | null>(null);
   const [usStates, setUsStates] = useState<FeatureCollection | null>(null);
@@ -253,10 +258,12 @@ export default function GlobeMap() {
     };
   }, []);
 
-  /** Pan/zoom to the most recently added place. */
+  /** Pan/zoom when the focused place changes (add / remove), not on temperature-only updates. */
   useEffect(() => {
-    if (countries.length === 0) return;
-    const last = countries[countries.length - 1];
+    if (!flyTargetKey) return;
+    const last = useCountryStore.getState().countries.at(-1);
+    if (!last) return;
+
     let feat: Feature<Geometry> | undefined;
     if (last.kind === "country") {
       if (!world) return;
@@ -278,7 +285,7 @@ export default function GlobeMap() {
       ],
       { padding: { top: 100, bottom: 100, left: 100, right: 120 }, maxZoom: 5.5, duration: 1400 },
     );
-  }, [world, usStates, countries]);
+  }, [world, usStates, flyTargetKey]);
 
   if (!token) {
     return (
@@ -331,3 +338,5 @@ export default function GlobeMap() {
     </Map>
   );
 }
+
+export default memo(GlobeMap);
