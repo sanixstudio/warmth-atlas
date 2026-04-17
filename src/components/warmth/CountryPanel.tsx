@@ -1,9 +1,9 @@
 "use client";
 
-import { isCancelledError, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CancelledError, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ListChecks, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
@@ -31,12 +31,17 @@ import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 const SEARCH_STALE_MS = 10 * 60_000;
 const WEATHER_STALE_MS = 2 * 60_000;
 
+/** Once set, the large “Start your tour” empty state is not shown again (cleared list uses a short line). */
+const RICH_EMPTY_INTRO_KEY = "fun-map-rich-empty-intro-seen";
+
 /**
  * Search, disambiguation list, unit toggle, and stacked country rows with remove/clear.
  * Copy and touch targets lean toward ages ~9–16: concrete labels, encouragement, ~44px+ actions (NN/g, BBC GEL).
  */
 export function CountryPanel() {
   const queryClient = useQueryClient();
+  const [richIntroDismissed, setRichIntroDismissed] = useState(false);
+  const [introPrefHydrated, setIntroPrefHydrated] = useState(false);
   const [query, setQuery] = useState("");
   /** Phrase shown when several matches need picking (input is cleared after search). */
   const [choiceMatchPhrase, setChoiceMatchPhrase] = useState("");
@@ -47,6 +52,26 @@ export function CountryPanel() {
     if (!candidates || candidates.length <= 1) return;
     choicePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [candidates]);
+
+  useEffect(() => {
+    startTransition(() => {
+      try {
+        setRichIntroDismissed(localStorage.getItem(RICH_EMPTY_INTRO_KEY) === "1");
+      } catch {
+        setRichIntroDismissed(true);
+      }
+      setIntroPrefHydrated(true);
+    });
+  }, []);
+
+  const dismissRichEmptyIntro = useCallback(() => {
+    try {
+      localStorage.setItem(RICH_EMPTY_INTRO_KEY, "1");
+    } catch {
+      /* private / quota */
+    }
+    setRichIntroDismissed(true);
+  }, []);
 
   const { countries, tempDisplayUnit, setTempDisplayUnit, upsertCountry, removeCountry, clearAll } =
     useCountryStore(
@@ -91,13 +116,14 @@ export function CountryPanel() {
         place.kind === "country"
           ? `Near ${place.capital}: ${formatTemperature(tempC, unit)}`
           : `${formatTemperature(tempC, unit)} · Natural Earth reference (U.S. state)`;
+      dismissRichEmptyIntro();
       toast.success(`Nice — ${place.name} is on the map!`, {
         description,
       });
     },
-    onError: (e: Error) => {
-      if (isCancelledError(e)) return;
-      toast.error(e.message ?? "Could not add country");
+    onError: (e: unknown) => {
+      if (e instanceof CancelledError) return;
+      toast.error(e instanceof Error ? e.message : "Could not add country");
     },
   });
 
@@ -132,11 +158,11 @@ export function CountryPanel() {
       setChoiceMatchPhrase(phrase);
       setCandidates(results);
     },
-    onError: (e: Error) => {
-      if (isCancelledError(e)) return;
+    onError: (e: unknown) => {
+      if (e instanceof CancelledError) return;
       setCandidates(null);
       setChoiceMatchPhrase("");
-      toast.error(e.message ?? "Search failed");
+      toast.error(e instanceof Error ? e.message : "Search failed");
     },
   });
 
@@ -317,16 +343,31 @@ export function CountryPanel() {
           </div>
 
           {countries.length === 0 ? (
-            <div className="border-primary/15 from-muted/40 to-accent/12 text-muted-foreground shrink-0 space-y-2 rounded-2xl border border-dashed bg-linear-to-br p-3 sm:space-y-2.5 sm:p-4">
-              <div className="text-primary flex items-center gap-2 text-sm font-semibold sm:text-base">
-                <Sparkles className="size-4 shrink-0 sm:size-5" aria-hidden />
-                Start your tour
+            introPrefHydrated && !richIntroDismissed ? (
+              <div className="border-primary/15 from-muted/40 to-accent/12 text-muted-foreground shrink-0 space-y-2 rounded-2xl border border-dashed bg-linear-to-br p-3 sm:space-y-2.5 sm:p-4">
+                <div className="text-primary flex items-center gap-2 text-sm font-semibold sm:text-base">
+                  <Sparkles className="size-4 shrink-0 sm:size-5" aria-hidden />
+                  Start your tour
+                </div>
+                <p className="text-xs leading-relaxed sm:text-sm">
+                  Add any country or U.S. state above. Each place gets a flag, a color from today&apos;s air temperature,
+                  and a spin on the globe so you can compare the world in one glance.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-1 w-full touch-manipulation sm:w-auto"
+                  onClick={dismissRichEmptyIntro}
+                >
+                  Got it
+                </Button>
               </div>
-              <p className="text-xs leading-relaxed sm:text-sm">
-                Add any country or U.S. state above. Each place gets a flag, a color from today&apos;s air temperature,
-                and a spin on the globe so you can compare the world in one glance.
+            ) : (
+              <p className="text-muted-foreground border-border/50 shrink-0 rounded-xl border border-dashed px-3 py-2.5 text-xs leading-relaxed sm:text-sm">
+                No places yet. Search above to add a country or U.S. state.
               </p>
-            </div>
+            )
           ) : (
             <div className="min-h-0 flex-1 overflow-hidden pr-0.5 lg:pr-1">
               <ScrollArea className="h-full max-h-full min-h-0 lg:max-h-[min(56vh,520px)] lg:min-h-56">
