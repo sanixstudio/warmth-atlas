@@ -15,13 +15,11 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { fetchCurrentWeather, fetchPlaceSearch } from "@/lib/api/warmth-client";
 import { APP_TAGLINE } from "@/lib/product/education-content";
@@ -184,9 +182,6 @@ export function CountryPanel() {
             <CardTitle className="font-heading text-card-foreground text-2xl leading-tight tracking-tight sm:text-3xl">
               Warmth Atlas
             </CardTitle>
-            <CardDescription className="text-muted-foreground hidden max-w-prose text-sm leading-snug sm:text-[0.9375rem] lg:block">
-              {APP_TAGLINE}
-            </CardDescription>
             <details className="group max-lg:block lg:hidden">
               <summary className="text-primary hover:text-primary/90 cursor-pointer list-none py-0.5 text-xs font-semibold underline-offset-2 marker:hidden [&::-webkit-details-marker]:hidden">
                 <span className="underline decoration-primary/40 decoration-dotted underline-offset-2">
@@ -209,9 +204,6 @@ export function CountryPanel() {
           onSubmit={onSubmit}
           className="max-lg:order-1 shrink-0 space-y-2 sm:space-y-3 lg:order-1"
         >
-          <Label htmlFor="country-q" className="text-foreground text-sm font-semibold sm:text-base">
-            Where do you want to explore?
-          </Label>
           <p className="text-muted-foreground -mt-0.5 hidden text-xs leading-snug lg:block lg:text-sm">
             Type a country or a U.S. state, then add it to paint the map.
           </p>
@@ -303,8 +295,8 @@ export function CountryPanel() {
           </div>
         ) : null}
 
-        <div className="max-lg:order-3 flex min-h-0 flex-1 flex-col lg:order-4">
-          <div className="mb-1.5 flex items-center justify-between gap-2 sm:mb-2">
+        <div className="max-lg:order-3 flex min-h-0 flex-1 flex-col overflow-hidden lg:order-4">
+          <div className="mb-1.5 flex shrink-0 items-center justify-between gap-2 sm:mb-2">
             <span className="text-foreground inline-flex items-center gap-2 text-sm font-semibold sm:text-base">
               Your places
               <span className="bg-primary/15 text-primary border-primary/20 rounded-full border px-2 py-0.5 text-xs tabular-nums sm:text-sm">
@@ -336,23 +328,27 @@ export function CountryPanel() {
               </p>
             </div>
           ) : (
-            <ScrollArea className="min-h-0 w-full flex-1 pr-1.5 max-lg:min-h-[min(44svh,380px)] lg:min-h-56 lg:max-h-[min(56vh,520px)] lg:pr-3">
-              <ul className="space-y-2 pb-1">
-                {[...countries].reverse().map((c) => (
-                  <SelectedPlaceRow
-                    key={c.id}
-                    place={c}
-                    tempDisplayUnit={tempDisplayUnit}
-                    onRemove={handleRemovePlace}
-                  />
-                ))}
-              </ul>
-            </ScrollArea>
+            <div className="min-h-0 flex-1 overflow-hidden pr-0.5 lg:pr-1">
+              <ScrollArea className="h-full max-h-full min-h-0 lg:max-h-[min(56vh,520px)] lg:min-h-56">
+                <ul className="max-lg:space-y-1.5 space-y-2 pb-1 lg:pr-2">
+                  {[...countries].reverse().map((c) => (
+                    <SelectedPlaceRow
+                      key={c.id}
+                      place={c}
+                      tempDisplayUnit={tempDisplayUnit}
+                      onRemove={handleRemovePlace}
+                    />
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
           )}
         </div>
 
-        <div className="max-lg:order-4 mt-auto shrink-0 space-y-1.5 pt-1 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-2">
-          <span className="text-foreground text-sm font-semibold">Show temperatures in</span>
+        <div className="space-y-1.5 pt-1 max-lg:order-4 max-lg:shrink-0 max-lg:rounded-xl max-lg:border max-lg:border-border/60 max-lg:bg-card/85 max-lg:px-2.5 max-lg:py-2 max-lg:backdrop-blur-sm sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-2 lg:border-0 lg:bg-transparent lg:p-0">
+          <span className="text-foreground text-sm font-semibold max-lg:text-xs">
+            Show temperatures in
+          </span>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

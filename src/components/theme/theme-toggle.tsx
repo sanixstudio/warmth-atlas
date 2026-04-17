@@ -53,7 +53,7 @@ export function ThemeToggle() {
         aria-label="Light theme"
         title="Light theme"
       >
-        <Sun className="size-4 shrink-0 sm:size-[1.125rem]" aria-hidden />
+        <Sun className="size-4 shrink-0 sm:size-4.5" aria-hidden />
       </Button>
       <Button
         type="button"
@@ -68,7 +68,7 @@ export function ThemeToggle() {
         aria-label="Dark theme"
         title="Dark theme"
       >
-        <Moon className="size-4 shrink-0 sm:size-[1.125rem]" aria-hidden />
+        <Moon className="size-4 shrink-0 sm:size-4.5" aria-hidden />
       </Button>
     </div>
   );
