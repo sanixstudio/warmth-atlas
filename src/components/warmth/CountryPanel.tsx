@@ -177,16 +177,26 @@ export function CountryPanel() {
   }, [clearAll]);
 
   return (
-    <Card className="border-border/60 bg-card/95 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden rounded-2xl py-2 shadow-xl ring-1 ring-primary/10 backdrop-blur-md sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-primary/20">
-      <CardHeader className="shrink-0 space-y-2 px-2.5 pb-2 sm:space-y-2.5 sm:px-4 sm:pb-3">
+    <Card className="border-border/60 bg-card/95 flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-hidden rounded-2xl py-2 shadow-xl ring-1 ring-primary/10 backdrop-blur-md max-lg:h-full sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-primary/20">
+      <CardHeader className="max-lg:space-y-1.5 max-lg:pb-1.5 shrink-0 space-y-2 px-2.5 pb-2 sm:space-y-2.5 sm:px-4 sm:pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">
             <CardTitle className="font-heading text-card-foreground text-2xl leading-tight tracking-tight sm:text-3xl">
               Warmth Atlas
             </CardTitle>
-            <CardDescription className="text-muted-foreground max-w-prose text-sm leading-snug sm:text-[0.9375rem]">
+            <CardDescription className="text-muted-foreground hidden max-w-prose text-sm leading-snug sm:text-[0.9375rem] lg:block">
               {APP_TAGLINE}
             </CardDescription>
+            <details className="group max-lg:block lg:hidden">
+              <summary className="text-primary hover:text-primary/90 cursor-pointer list-none py-0.5 text-xs font-semibold underline-offset-2 marker:hidden [&::-webkit-details-marker]:hidden">
+                <span className="underline decoration-primary/40 decoration-dotted underline-offset-2">
+                  What is this app?
+                </span>
+              </summary>
+              <p className="text-muted-foreground mt-1.5 max-w-prose text-xs leading-snug sm:text-sm">
+                {APP_TAGLINE}
+              </p>
+            </details>
           </div>
           <div className="shrink-0 pt-0.5">
             <ThemeToggle />
@@ -194,7 +204,7 @@ export function CountryPanel() {
         </div>
       </CardHeader>
 
-      <CardContent className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-2.5 sm:gap-5 sm:px-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden px-2.5 max-lg:gap-2 sm:gap-5 sm:px-4">
         <form
           onSubmit={onSubmit}
           className="max-lg:order-1 shrink-0 space-y-2 sm:space-y-3 lg:order-1"
@@ -202,7 +212,7 @@ export function CountryPanel() {
           <Label htmlFor="country-q" className="text-foreground text-sm font-semibold sm:text-base">
             Where do you want to explore?
           </Label>
-          <p className="text-muted-foreground -mt-0.5 text-xs leading-snug sm:text-sm">
+          <p className="text-muted-foreground -mt-0.5 hidden text-xs leading-snug lg:block lg:text-sm">
             Type a country or a U.S. state, then add it to paint the map.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
@@ -239,7 +249,7 @@ export function CountryPanel() {
             role="region"
             aria-labelledby="country-choice-heading"
             aria-live="polite"
-            className="border-primary/20 from-primary/[0.06] to-accent/[0.08] max-lg:order-2 shrink-0 space-y-3 rounded-2xl border bg-gradient-to-br p-3 sm:space-y-3.5 sm:p-4 lg:order-3 dark:border-primary/25 dark:from-primary/[0.1] dark:to-transparent"
+            className="border-primary/20 from-primary/6 to-accent/8 max-lg:order-2 shrink-0 space-y-3 rounded-2xl border bg-linear-to-br p-3 sm:space-y-3.5 sm:p-4 lg:order-3 dark:border-primary/25 dark:from-primary/10 dark:to-transparent"
           >
             <div className="flex gap-2.5 sm:gap-3">
               <div
@@ -272,7 +282,7 @@ export function CountryPanel() {
                       onClick={() => pickCandidate(c)}
                       disabled={busy}
                     >
-                      <PlaceFlagImg candidate={c} className="!size-6 shrink-0 sm:!size-7" />
+                      <PlaceFlagImg candidate={c} className="size-6! shrink-0 sm:size-7!" />
                       <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
                         <span className="font-medium">{c.name}</span>
                         <span className="text-muted-foreground text-xs sm:text-sm">
@@ -315,7 +325,7 @@ export function CountryPanel() {
           </div>
 
           {countries.length === 0 ? (
-            <div className="border-primary/15 from-muted/40 to-accent/[0.12] text-muted-foreground shrink-0 space-y-2 rounded-2xl border border-dashed bg-gradient-to-br p-3 sm:space-y-2.5 sm:p-4">
+            <div className="border-primary/15 from-muted/40 to-accent/12 text-muted-foreground shrink-0 space-y-2 rounded-2xl border border-dashed bg-linear-to-br p-3 sm:space-y-2.5 sm:p-4">
               <div className="text-primary flex items-center gap-2 text-sm font-semibold sm:text-base">
                 <Sparkles className="size-4 shrink-0 sm:size-5" aria-hidden />
                 Start your tour
@@ -326,7 +336,7 @@ export function CountryPanel() {
               </p>
             </div>
           ) : (
-            <ScrollArea className="min-h-0 flex-1 pr-1.5 sm:h-[min(40vh,320px)] sm:flex-none sm:pr-3 lg:min-h-48">
+            <ScrollArea className="min-h-0 w-full flex-1 pr-1.5 max-lg:min-h-[min(44svh,380px)] lg:min-h-56 lg:max-h-[min(56vh,520px)] lg:pr-3">
               <ul className="space-y-2 pb-1">
                 {[...countries].reverse().map((c) => (
                   <SelectedPlaceRow
@@ -348,7 +358,7 @@ export function CountryPanel() {
               type="button"
               size="sm"
               variant={tempDisplayUnit === "C" ? "default" : "secondary"}
-              className="h-9 min-w-[2.75rem] touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
+              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
               onClick={() => setTempDisplayUnit("C")}
               aria-pressed={tempDisplayUnit === "C"}
             >
@@ -358,7 +368,7 @@ export function CountryPanel() {
               type="button"
               size="sm"
               variant={tempDisplayUnit === "F" ? "default" : "secondary"}
-              className="h-9 min-w-[2.75rem] touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
+              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
               onClick={() => setTempDisplayUnit("F")}
               aria-pressed={tempDisplayUnit === "F"}
             >
@@ -368,7 +378,7 @@ export function CountryPanel() {
         </div>
       </CardContent>
 
-      <CardFooter className="border-border/60 shrink-0 flex flex-col gap-2.5 border-t px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      <CardFooter className="border-border/60 max-lg:gap-1.5 max-lg:py-2 shrink-0 flex flex-col gap-2.5 border-t px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <nav
           className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:justify-start sm:gap-x-5"
           aria-label="Help and legal"
@@ -384,7 +394,7 @@ export function CountryPanel() {
             Privacy
           </Link>
         </nav>
-        <p className="text-muted-foreground text-center text-[10px] leading-snug sm:text-left sm:text-xs">
+        <p className="text-muted-foreground max-lg:hidden text-center text-[10px] leading-snug sm:text-left sm:text-xs">
           Live temperatures from Open-Meteo · Map shapes from Natural Earth · Names from REST Countries (see Learn
           for details).
         </p>
