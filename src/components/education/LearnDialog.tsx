@@ -50,10 +50,11 @@ export function LearnDialog() {
         type="button"
         variant="ghost"
         size="sm"
-        className="h-8 gap-1.5 px-2 text-xs sm:text-sm"
+        className="h-9 min-h-9 gap-1.5 rounded-lg px-3 text-xs font-semibold sm:h-10 sm:min-h-10 sm:px-3.5 sm:text-sm"
         onClick={() => setOpen(true)}
+        aria-label="How Warmth Atlas works and where the data comes from"
       >
-        Learn
+        How it works
       </Button>
       <DialogContent className="border-border/80 bg-card gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="border-border/60 space-y-2 border-b px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5">

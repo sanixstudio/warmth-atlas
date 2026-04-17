@@ -31,7 +31,7 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
   }, [onRemove, place]);
 
   return (
-    <li className="border-border/70 flex items-center gap-2 rounded-xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5">
+    <li className="border-border/70 flex items-center gap-2 rounded-2xl border bg-muted/50 p-2.5 sm:gap-3 sm:p-3 dark:bg-white/5">
       <PlaceFlagImg place={place} className="!size-7 shrink-0 sm:!size-8" />
       <span
         className="ring-foreground/15 h-9 w-2 shrink-0 self-stretch rounded-full ring-2 sm:h-10 dark:ring-white/20"

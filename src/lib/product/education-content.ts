@@ -36,7 +36,7 @@ export const PRODUCT_GUARDS = {
   safetyTrust: {
     title: "Safety & trust",
     bullets: [
-      "No user accounts are required to explore the map (MVP). That limits what we collect: we don’t run chat, forums, or public feeds in this app.",
+      "No user accounts are required to explore the map (MVP). That limits what we collect: we don't run chat, forums, or public feeds in this app.",
       "If we ever add sign-in for classrooms, we will document data practices and age-appropriate consent (including COPPA / FERPA awareness for U.S. school contexts) before turning features on.",
       "There is no user-generated public content in early versions—only your local session and public data APIs.",
     ],
@@ -57,13 +57,14 @@ export const PRODUCT_GUARDS = {
       "Temperature numbers appear in the list and on the map; the color scale is an extra cue, not the only signal.",
       "The warmth legend describes the color ramp; we note that color alone is not ideal for all vision types—use °C/°F and numeric labels.",
       "We aim for touch-friendly controls and readable type on phones for equity of access (e.g. Title I / rural 1:1 device scenarios). A pattern or numeric-only highlight mode is a future enhancement.",
+      "Labels use plain language where we can so students are not blocked by jargon; numbers stay the source of truth for color on the map.",
     ],
   },
   offline: {
-    title: "Offline & flaky Wi‑Fi",
+    title: "Offline & flaky Wi-Fi",
     bullets: [
       "You need internet for live temperature lookups and map tiles. If the connection drops, the app shows an offline notice at the top of the screen.",
-      "Even a short “last cached / may be stale” message helps classrooms spot flaky Wi‑Fi: after a successful load your browser may briefly reuse cached map or boundary assets, but fresh weather always needs a new request—when offline, the timestamp on each row reflects the last successful fetch, not live conditions.",
+      "Even a short “last cached / may be stale” message helps classrooms spot flaky Wi-Fi: after a successful load your browser may briefly reuse cached map or boundary assets, but fresh weather always needs a new request—when offline, the timestamp on each row reflects the last successful fetch, not live conditions.",
     ],
   },
   equity: {
@@ -75,5 +76,9 @@ export const PRODUCT_GUARDS = {
   },
 } as const;
 
+/** One friendly line under the app title (sidebar). Concrete, low jargon—good for ages ~9–16. */
+export const APP_TAGLINE =
+  "Search a place, see today's air temperature, and watch the globe light up in color. Built for curiosity—not official forecasts.";
+
 export const LEARN_INTRO =
-  "Warmth Atlas is a geography + data-literacy sketch: one place to compare current air temperature near capitals on a globe. Use it for curiosity, demos, or classroom prompts—not as official forecasts.";
+  "Warmth Atlas is a geography playground with real data: compare current air temperature near capitals on a 3D globe. Great for class demos and 'what if?' questions—not a replacement for official forecasts.";
