@@ -217,13 +217,39 @@ export function CountryPanel() {
   }, [clearAll]);
 
   return (
-    <Card className="border-border/60 bg-card flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-x-hidden overflow-y-hidden rounded-2xl py-2 shadow-xl ring-1 ring-primary/10 max-lg:h-full sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-primary/20">
-      <CardHeader className="max-lg:space-y-1.5 max-lg:pb-1.5 shrink-0 space-y-2 px-2.5 pb-2 sm:space-y-2.5 sm:px-4 sm:pb-3">
+    <Card className="border-border/60 bg-card flex h-full max-h-full min-h-0 w-full max-w-md flex-col gap-0 overflow-x-hidden overflow-y-hidden rounded-2xl py-1.5 shadow-xl ring-1 ring-primary/10 max-lg:h-full sm:gap-0 sm:py-4 sm:shadow-2xl dark:ring-primary/20">
+      <CardHeader className="max-lg:space-y-1 max-lg:pb-1.5 shrink-0 space-y-2 px-2.5 pb-2 sm:space-y-2.5 sm:px-4 sm:pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">
             <CardTitle className="font-heading text-card-foreground text-2xl leading-tight tracking-tight sm:text-3xl">
               Warmth Atlas
             </CardTitle>
+            <nav
+              className="text-muted-foreground flex flex-wrap items-center gap-x-1 border-b border-border/50 pb-2 lg:hidden"
+              aria-label="Help and legal"
+            >
+              <LearnDialog
+                triggerClassName="h-auto min-h-9 shrink-0 rounded-md px-1.5 py-1.5 text-[11px] font-medium leading-none text-muted-foreground hover:bg-muted/60 hover:text-primary"
+              />
+              <span className="text-muted-foreground/35 select-none px-0.5" aria-hidden>
+                ·
+              </span>
+              <Link
+                href="/educators"
+                className="inline-flex min-h-9 min-w-0 items-center rounded-md px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-primary"
+              >
+                Educators
+              </Link>
+              <span className="text-muted-foreground/35 select-none px-0.5" aria-hidden>
+                ·
+              </span>
+              <Link
+                href="/privacy"
+                className="inline-flex min-h-9 min-w-0 items-center rounded-md px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:underline"
+              >
+                Privacy
+              </Link>
+            </nav>
             <details className="group max-lg:block lg:hidden">
               <summary className="text-primary hover:text-primary/90 cursor-pointer list-none py-0.5 text-xs font-semibold underline-offset-2 marker:hidden [&::-webkit-details-marker]:hidden">
                 <span className="underline decoration-primary/40 decoration-dotted underline-offset-2">
@@ -241,10 +267,10 @@ export function CountryPanel() {
         </div>
       </CardHeader>
 
-      <CardContent className="relative isolate flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden px-2.5 max-lg:gap-2 sm:gap-5 sm:px-4">
+      <CardContent className="relative isolate flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden px-2.5 max-lg:gap-1.5 sm:gap-5 sm:px-4">
         <form
           onSubmit={onSubmit}
-          className="max-lg:order-1 shrink-0 space-y-2 sm:space-y-3 lg:order-1"
+          className="max-lg:order-1 shrink-0 space-y-1.5 sm:space-y-3 lg:order-1"
         >
           <p className="text-muted-foreground -mt-0.5 hidden text-xs leading-snug lg:block lg:text-sm">
             Start typing a country, U.S. state, or city—we search after you pause about{" "}
@@ -301,8 +327,8 @@ export function CountryPanel() {
           />
         ) : null}
 
-        <div className="max-lg:order-3 relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden lg:order-4">
-          <div className="mb-1.5 flex shrink-0 items-center justify-between gap-2 sm:mb-2">
+        <div className="max-lg:order-3 relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-[min(38svh,220px)] lg:order-4">
+          <div className="mb-1 flex shrink-0 items-center justify-between gap-2 sm:mb-2">
             <span className="text-foreground inline-flex items-center gap-2 text-sm font-semibold sm:text-base">
               Your places
               <span className="bg-primary/15 text-primary border-primary/20 rounded-full border px-2 py-0.5 text-xs tabular-nums sm:text-sm">
@@ -351,7 +377,7 @@ export function CountryPanel() {
           ) : (
             <div className="min-h-0 flex-1 overflow-hidden pr-0.5 lg:pr-1">
               <ScrollArea className="h-full max-h-full min-h-0 lg:max-h-[min(56vh,520px)] lg:min-h-56">
-                <ul className="max-lg:space-y-1.5 space-y-2 pb-1 lg:pr-2">
+                <ul className="max-lg:space-y-1 space-y-2 pb-1 lg:pr-2">
                   {[...countries].reverse().map((c) => (
                     <SelectedPlaceRow
                       key={c.id}
@@ -366,16 +392,16 @@ export function CountryPanel() {
           )}
         </div>
 
-        <div className="relative z-0 space-y-1.5 pt-1 max-lg:order-4 max-lg:shrink-0 max-lg:rounded-xl max-lg:border max-lg:border-border/60 max-lg:bg-card/85 max-lg:px-2.5 max-lg:py-2 max-lg:backdrop-blur-sm sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-3 lg:border-0 lg:bg-transparent lg:p-0">
-          <span className="text-foreground text-sm font-semibold max-lg:text-xs">
+        <div className="relative z-0 space-y-1 pt-0.5 max-lg:order-4 max-lg:shrink-0 max-lg:rounded-lg max-lg:border max-lg:border-border/60 max-lg:bg-muted/30 max-lg:px-2 max-lg:py-1.5 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-3 lg:border-0 lg:bg-transparent lg:p-0">
+          <span className="text-foreground text-sm font-semibold max-lg:text-[10px] max-lg:leading-tight">
             Show temperatures in
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <Button
               type="button"
               size="sm"
               variant={tempDisplayUnit === "C" ? "default" : "secondary"}
-              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
+              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums max-lg:h-8 max-lg:min-h-8 max-lg:min-w-10 max-lg:px-2.5 max-lg:text-sm sm:h-10 sm:min-w-12 sm:text-base"
               onClick={() => setTempDisplayUnit("C")}
               aria-pressed={tempDisplayUnit === "C"}
             >
@@ -385,7 +411,7 @@ export function CountryPanel() {
               type="button"
               size="sm"
               variant={tempDisplayUnit === "F" ? "default" : "secondary"}
-              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums sm:h-10 sm:min-w-12 sm:text-base"
+              className="h-9 min-w-11 touch-manipulation rounded-xl px-3 text-sm font-bold tabular-nums max-lg:h-8 max-lg:min-h-8 max-lg:min-w-10 max-lg:px-2.5 max-lg:text-sm sm:h-10 sm:min-w-12 sm:text-base"
               onClick={() => setTempDisplayUnit("F")}
               aria-pressed={tempDisplayUnit === "F"}
             >
@@ -395,7 +421,7 @@ export function CountryPanel() {
         </div>
       </CardContent>
 
-      <CardFooter className="border-border/60 max-lg:gap-1.5 max-lg:py-2 shrink-0 flex flex-col gap-2.5 border-t px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+      <CardFooter className="border-border/60 max-lg:hidden shrink-0 flex flex-col gap-2.5 border-t px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <nav
           className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:justify-start sm:gap-x-5"
           aria-label="Help and legal"

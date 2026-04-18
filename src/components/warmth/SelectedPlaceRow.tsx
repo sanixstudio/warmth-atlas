@@ -58,21 +58,21 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
         : " (city center, Open-Meteo)";
 
   return (
-    <li className="border-border/70 flex items-stretch gap-2 rounded-xl border bg-muted/50 p-2 dark:bg-white/5 lg:items-center lg:gap-3 lg:rounded-2xl lg:p-3">
-      <PlaceFlagImg place={place} className="!size-6 shrink-0 self-center lg:!size-8" />
+    <li className="border-border/70 flex items-center gap-1.5 rounded-lg border bg-muted/50 p-1.5 dark:bg-white/5 max-lg:gap-2 lg:items-center lg:gap-3 lg:rounded-2xl lg:p-3">
+      <PlaceFlagImg place={place} className="!size-5 shrink-0 self-center lg:!size-8" />
       <span
-        className="ring-foreground/15 w-1.5 shrink-0 self-stretch rounded-full ring-2 max-lg:min-h-10 lg:h-10 dark:ring-white/20"
+        className="ring-foreground/15 w-1 shrink-0 self-stretch rounded-full ring-2 max-lg:h-7 max-lg:min-h-0 lg:h-10 dark:ring-white/20"
         style={{ background: place.warmthFill }}
         aria-hidden
       />
 
       {/* Compact: narrow sidebar / phones */}
       <div className="min-w-0 flex-1 lg:hidden">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm font-semibold leading-tight">{place.name}</span>
-          <span className="text-primary shrink-0 text-sm font-bold tabular-nums">{tempLabel}</span>
+        <div className="flex items-baseline justify-between gap-1.5">
+          <span className="truncate text-xs font-semibold leading-tight">{place.name}</span>
+          <span className="text-primary shrink-0 text-xs font-bold tabular-nums">{tempLabel}</span>
         </div>
-        <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">{mobileSubtitle}</p>
+        <p className="text-muted-foreground mt-0 truncate text-[10px] leading-tight">{mobileSubtitle}</p>
       </div>
 
       {/* Spacious: desktop sidebar */}
@@ -92,7 +92,7 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
         ) : null}
       </div>
 
-      <div className="flex shrink-0 flex-row items-center gap-0.5 self-center">
+      <div className="flex shrink-0 flex-row items-center gap-0 self-center">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -100,10 +100,10 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="text-muted-foreground hover:text-foreground size-8 touch-manipulation lg:size-8"
+                className="text-muted-foreground hover:text-foreground size-7 touch-manipulation max-lg:size-7 lg:size-8"
                 aria-label={`Data details for ${place.name}`}
               >
-                <Info className="size-3.5 lg:size-4" />
+                <Info className="size-3 max-lg:size-3 lg:size-4" />
               </Button>
             }
           />
@@ -137,11 +137,11 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
           type="button"
           size="icon"
           variant="ghost"
-          className="text-muted-foreground hover:text-destructive size-8 touch-manipulation lg:size-9"
+          className="text-muted-foreground hover:text-destructive size-7 touch-manipulation max-lg:size-7 lg:size-9"
           onClick={handleRemove}
           aria-label={`Remove ${place.name}`}
         >
-          <Trash2 className="size-3.5 lg:size-4" />
+          <Trash2 className="size-3 max-lg:size-3 lg:size-4" />
         </Button>
       </div>
     </li>

@@ -18,6 +18,7 @@ import {
   PRODUCT_DATA_SOURCES,
   PRODUCT_GUARDS,
 } from "@/lib/product/education-content";
+import { cn } from "@/lib/utils";
 
 function GuardBlock({
   title,
@@ -38,10 +39,15 @@ function GuardBlock({
   );
 }
 
+export type LearnDialogProps = {
+  /** Merges with the default trigger (e.g. compact header row on small screens). */
+  triggerClassName?: string;
+};
+
 /**
  * In-app explanation: how Warmth Atlas works, data sources, and non-negotiable trust postures.
  */
-export function LearnDialog() {
+export function LearnDialog({ triggerClassName }: LearnDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -50,7 +56,10 @@ export function LearnDialog() {
         type="button"
         variant="ghost"
         size="sm"
-        className="h-9 min-h-9 gap-1.5 rounded-lg px-3 text-xs font-semibold sm:h-10 sm:min-h-10 sm:px-3.5 sm:text-sm"
+        className={cn(
+          "h-9 min-h-9 gap-1.5 rounded-lg px-3 text-xs font-semibold sm:h-10 sm:min-h-10 sm:px-3.5 sm:text-sm",
+          triggerClassName,
+        )}
         onClick={() => setOpen(true)}
         aria-label="How Warmth Atlas works and where the data comes from"
       >
