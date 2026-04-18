@@ -1,3 +1,4 @@
+import { PLACE_SEARCH_HOMONYM_CITY_MAX } from "@/lib/search/place-search-config";
 import type { PlaceSearchResult } from "@/lib/schemas/place";
 
 /**
@@ -34,7 +35,7 @@ export function mergeCountriesStatesAndCities(
     .filter((c) =>
       states.some((s) => normalizePlaceLabel(s.name) === normalizePlaceLabel(c.name)),
     )
-    .slice(0, 6);
+    .slice(0, PLACE_SEARCH_HOMONYM_CITY_MAX);
 
   return [...states, ...homonymCities];
 }

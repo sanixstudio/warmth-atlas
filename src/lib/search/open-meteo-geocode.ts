@@ -62,8 +62,11 @@ export function parseOpenMeteoGeocodeToPlaces(data: unknown, max = 8): PlaceSear
   const out: PlaceSearchResult[] = [];
   for (const r of parsed.data.results) {
     if (!isCityLikeFeatureCode(r.feature_code)) continue;
+    if (!Number.isFinite(r.latitude) || !Number.isFinite(r.longitude)) continue;
 
-    const iso2 = r.country_code.toUpperCase();
+    const rawCode = typeof r.country_code === "string" ? r.country_code.trim() : "";
+    if (rawCode.length !== 2) continue;
+    const iso2 = rawCode.toUpperCase();
     const row = {
       kind: "city" as const,
       id: `city-${r.id}`,

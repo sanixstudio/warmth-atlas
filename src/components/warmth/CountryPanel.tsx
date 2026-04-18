@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
 import { LearnDialog } from "@/components/education/LearnDialog";
-import { PlaceFlagImg } from "@/components/warmth/PlaceFlagImg";
+import { PlaceSearchSuggestions } from "@/components/warmth/PlaceSearchSuggestions";
 import { SelectedPlaceRow } from "@/components/warmth/SelectedPlaceRow";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { fetchCurrentWeather, fetchPlaceSearch } from "@/lib/api/warmth-client";
+import { getErrorMessage, isAbortError } from "@/lib/errors/guards";
 import { APP_TAGLINE } from "@/lib/product/education-content";
 import { useDebouncedValue } from "@/lib/react/use-debounced-value";
+import { PLACE_SEARCH_MIN_QUERY_LEN, PLACE_SEARCH_QUERY_MAX_LEN } from "@/lib/search/place-search-config";
 import type { PlaceSearchResult } from "@/lib/schemas/place";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
@@ -32,7 +34,6 @@ import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 const SEARCH_STALE_MS = 10 * 60_000;
 const WEATHER_STALE_MS = 2 * 60_000;
 const SEARCH_DEBOUNCE_MS = 320;
-const MIN_SEARCH_CHARS = 2;
 
 /** Once set, the large “Start your tour” empty state is not shown again (cleared list uses a short line). */
 const RICH_EMPTY_INTRO_KEY = "fun-map-rich-empty-intro-seen";
@@ -50,9 +51,9 @@ export function CountryPanel() {
   const inputTrim = query.trim();
   const debouncedTrim = debouncedQuery.trim();
   const isDebouncing =
-    inputTrim.length >= MIN_SEARCH_CHARS && inputTrim !== debouncedTrim;
-  const showTypeahead = inputTrim.length >= MIN_SEARCH_CHARS;
-  const searchEnabled = debouncedTrim.length >= MIN_SEARCH_CHARS;
+    inputTrim.length >= PLACE_SEARCH_MIN_QUERY_LEN && inputTrim !== debouncedTrim;
+  const showTypeahead = inputTrim.length >= PLACE_SEARCH_MIN_QUERY_LEN;
+  const searchEnabled = debouncedTrim.length >= PLACE_SEARCH_MIN_QUERY_LEN;
 
   const placeSearch = useQuery({
     queryKey: ["place-search", debouncedTrim] as const,
@@ -61,6 +62,10 @@ export function CountryPanel() {
     staleTime: SEARCH_STALE_MS,
     gcTime: 30 * 60_000,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, err) => {
+      if (isAbortError(err)) return false;
+      return failureCount < 1;
+    },
   });
 
   const suggestions: PlaceSearchResult[] = useMemo(
@@ -153,7 +158,8 @@ export function CountryPanel() {
     }
     if (!searchEnabled) return;
     if (placeSearch.isError) {
-      toast.error(placeSearch.error instanceof Error ? placeSearch.error.message : "Search failed");
+      if (isAbortError(placeSearch.error)) return;
+      toast.error(getErrorMessage(placeSearch.error, "Search failed"));
       return;
     }
     if (searchBusy) {
@@ -251,6 +257,7 @@ export function CountryPanel() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="e.g. Japan, Texas, San Francisco…"
               autoComplete="off"
+              maxLength={PLACE_SEARCH_QUERY_MAX_LEN}
               disabled={addCountry.isPending}
               inputMode="search"
               enterKeyHint="search"
@@ -277,72 +284,21 @@ export function CountryPanel() {
         </form>
 
         {showTypeahead ? (
-          <div
-            id="place-search-suggestions"
-            role="region"
-            aria-label="Search suggestions"
-            className="border-border bg-card text-card-foreground relative z-30 max-lg:order-2 max-h-52 min-h-0 shrink-0 overflow-hidden rounded-2xl border shadow-lg ring-1 ring-border/60 lg:order-2"
-          >
-            {isDebouncing ? (
-              <p className="text-muted-foreground px-3 py-3 text-sm">
-                Pausing search… keep typing or wait a moment for &quot;{debouncedTrim}&quot;.
-              </p>
-            ) : placeSearch.isError ? (
-              <p className="text-destructive px-3 py-3 text-sm">
-                {placeSearch.error instanceof Error ? placeSearch.error.message : "Search failed"}
-              </p>
-            ) : searchBusy && suggestions.length === 0 ? (
-              <div className="text-muted-foreground flex items-center gap-2 px-3 py-3 text-sm">
-                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                Finding places…
-              </div>
-            ) : suggestions.length === 0 ? (
-              <p className="text-muted-foreground px-3 py-3 text-sm">
-                No matches for &quot;{debouncedTrim}&quot; yet—try different spelling.
-              </p>
-            ) : (
-              <div className="flex max-h-52 flex-col">
-                <p className="text-muted-foreground border-b border-border/80 bg-muted/50 px-3 py-2 text-xs font-medium">
-                  {suggestions.length} match{suggestions.length === 1 ? "" : "es"} for &quot;{debouncedTrim}&quot;
-                  {placeSearch.isFetching ? " · updating…" : ""}
-                </p>
-                <ul
-                  role="listbox"
-                  aria-label="Places matching your search"
-                  className="max-h-[min(13rem,40svh)] overflow-y-auto overscroll-contain p-1.5 sm:max-h-52"
-                >
-                  {suggestions.map((c) => (
-                    <li key={`${c.kind}-${c.id}`} role="presentation">
-                      <Button
-                        type="button"
-                        role="option"
-                        variant="ghost"
-                        className="hover:bg-muted flex min-h-11 w-full touch-manipulation items-center gap-2 rounded-xl py-2 text-left sm:min-h-12 sm:py-2.5"
-                        onClick={() => pickCandidate(c)}
-                        disabled={addCountry.isPending}
-                      >
-                        <PlaceFlagImg candidate={c} className="!size-6 shrink-0 sm:!size-7" />
-                        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
-                          <span className="font-medium">{c.name}</span>
-                          <span className="text-muted-foreground text-xs sm:text-sm">
-                            {c.kind === "country" ? (
-                              <>
-                                {c.iso2} · {c.capital}
-                              </>
-                            ) : c.kind === "us_state" ? (
-                              <>U.S. state · {c.id}</>
-                            ) : (
-                              <>{c.capital}</>
-                            )}
-                          </span>
-                        </span>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <PlaceSearchSuggestions
+            debouncedLabel={debouncedTrim}
+            isDebouncing={isDebouncing}
+            isError={placeSearch.isError}
+            errorMessage={
+              placeSearch.isError && !isAbortError(placeSearch.error)
+                ? getErrorMessage(placeSearch.error, "Search failed")
+                : null
+            }
+            searchBusy={searchBusy}
+            suggestions={suggestions}
+            isFetching={placeSearch.isFetching}
+            onPick={pickCandidate}
+            addPending={addCountry.isPending}
+          />
         ) : null}
 
         <div className="max-lg:order-3 relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden lg:order-4">

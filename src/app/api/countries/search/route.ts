@@ -5,17 +5,43 @@ import { parseRestCountriesArray } from "@/lib/schemas/country";
 import { placeSearchResponseSchema } from "@/lib/schemas/place";
 import { clientKeyFromRequest, checkRateLimit } from "@/lib/security/simple-rate-limit";
 import { mergeCountriesStatesAndCities } from "@/lib/search/merge-place-search";
+import {
+  PLACE_SEARCH_GEOCODE_COUNT_AUX,
+  PLACE_SEARCH_GEOCODE_COUNT_CITY_FOCUS,
+  PLACE_SEARCH_MIN_QUERY_LEN,
+  PLACE_SEARCH_QUERY_MAX_LEN,
+  PLACE_SEARCH_RESULTS_MAX,
+} from "@/lib/search/place-search-config";
 import { parseOpenMeteoGeocodeToPlaces } from "@/lib/search/open-meteo-geocode";
 import { rankSearchResults } from "@/lib/search/rank-place-search";
 import { searchUsStates } from "@/lib/search/us-states-search";
 
 const SEARCH_RATE = { max: 60, windowMs: 60_000 } as const;
+/** Upper bound for outbound REST / geocoding `fetch` (client disconnect also aborts via `request.signal`). */
+const UPSTREAM_TIMEOUT_MS = 12_000;
 
 const querySchema = z.object({
-  q: z.string().min(2, "Use at least 2 characters").max(120),
+  q: z
+    .string()
+    .min(PLACE_SEARCH_MIN_QUERY_LEN, `Use at least ${PLACE_SEARCH_MIN_QUERY_LEN} characters`)
+    .max(PLACE_SEARCH_QUERY_MAX_LEN),
 });
 
-const SEARCH_RESULTS_MAX = 14;
+function upstreamSignal(request: Request): AbortSignal {
+  const deadline = AbortSignal.timeout(UPSTREAM_TIMEOUT_MS);
+  if (typeof AbortSignal.any === "function") {
+    try {
+      return AbortSignal.any([deadline, request.signal]);
+    } catch {
+      return deadline;
+    }
+  }
+  return deadline;
+}
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === "AbortError";
+}
 
 /**
  * Place search: REST Countries + bundled U.S. states + Open-Meteo geocoding (cities).
@@ -38,43 +64,65 @@ export async function GET(request: Request) {
 
   const { q } = parsed.data;
   const trimmed = q.trim();
-  const upstream = encodeURIComponent(trimmed);
+  const signal = upstreamSignal(request);
 
-  const restRes = await fetch(
-    `https://restcountries.com/v3.1/name/${upstream}?fields=cca2,cca3,name,capital,capitalInfo,latlng`,
-    { next: { revalidate: 3600 } },
-  );
-
-  const states = searchUsStates(q);
-
-  let countries: ReturnType<typeof parseRestCountriesArray> = [];
-  if (restRes.status === 200) {
-    const json: unknown = await restRes.json();
-    countries = parseRestCountriesArray(json);
-  } else if (restRes.status !== 404) {
-    return NextResponse.json(
-      { error: "Country lookup failed", status: restRes.status },
-      { status: 502 },
+  try {
+    const restRes = await fetch(
+      `https://restcountries.com/v3.1/name/${encodeURIComponent(trimmed)}?fields=cca2,cca3,name,capital,capitalInfo,latlng`,
+      { next: { revalidate: 3600 }, signal },
     );
-  }
 
-  const needsGeocode = countries.length === 0 || states.length > 0;
-  let cities: ReturnType<typeof parseOpenMeteoGeocodeToPlaces> = [];
-  if (needsGeocode) {
-    const geoCount = countries.length === 0 && states.length === 0 ? 14 : 10;
-    const geoRes = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=${geoCount}&language=en`,
-      { next: { revalidate: 3600 } },
-    );
-    if (geoRes.ok) {
-      const geoJson: unknown = await geoRes.json();
-      cities = parseOpenMeteoGeocodeToPlaces(geoJson, geoCount);
+    const states = searchUsStates(q);
+
+    let countries: ReturnType<typeof parseRestCountriesArray> = [];
+    if (restRes.status === 200) {
+      let json: unknown;
+      try {
+        json = await restRes.json();
+      } catch {
+        return NextResponse.json({ error: "Country lookup returned invalid data." }, { status: 502 });
+      }
+      countries = parseRestCountriesArray(json);
+    } else if (restRes.status !== 404) {
+      return NextResponse.json(
+        { error: "Country lookup failed", status: restRes.status },
+        { status: 502 },
+      );
     }
+
+    const needsGeocode = countries.length === 0 || states.length > 0;
+    let cities: ReturnType<typeof parseOpenMeteoGeocodeToPlaces> = [];
+    if (needsGeocode) {
+      const geoCount =
+        countries.length === 0 && states.length === 0
+          ? PLACE_SEARCH_GEOCODE_COUNT_CITY_FOCUS
+          : PLACE_SEARCH_GEOCODE_COUNT_AUX;
+      const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=${geoCount}&language=en`,
+        { next: { revalidate: 3600 }, signal },
+      );
+      if (geoRes.ok) {
+        let geoJson: unknown;
+        try {
+          geoJson = await geoRes.json();
+        } catch {
+          geoJson = null;
+        }
+        if (geoJson !== null) {
+          cities = parseOpenMeteoGeocodeToPlaces(geoJson, geoCount);
+        }
+      }
+    }
+
+    const merged = mergeCountriesStatesAndCities(countries, states, cities);
+    const results = rankSearchResults(trimmed, merged, PLACE_SEARCH_RESULTS_MAX);
+    const body = placeSearchResponseSchema.parse({ results });
+
+    return NextResponse.json(body);
+  } catch (e: unknown) {
+    if (isAbortError(e)) {
+      return NextResponse.json({ error: "Search timed out or was cancelled." }, { status: 408 });
+    }
+    return NextResponse.json({ error: "Search temporarily unavailable." }, { status: 503 });
   }
-
-  const merged = mergeCountriesStatesAndCities(countries, states, cities);
-  const results = rankSearchResults(trimmed, merged, SEARCH_RESULTS_MAX);
-  const body = placeSearchResponseSchema.parse({ results });
-
-  return NextResponse.json(body);
 }

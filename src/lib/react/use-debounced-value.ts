@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
  */
 export function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
+  const safeMs = Math.max(0, Number.isFinite(delayMs) ? delayMs : 0);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(id);
-  }, [value, delayMs]);
+    const id = globalThis.setTimeout(() => setDebounced(value), safeMs);
+    return () => globalThis.clearTimeout(id);
+  }, [value, safeMs]);
 
   return debounced;
 }

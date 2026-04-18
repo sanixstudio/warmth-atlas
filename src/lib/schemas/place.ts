@@ -10,8 +10,8 @@ export const placeSearchResultSchema = z.object({
   name: z.string(),
   /** Secondary line in UI: capital name, or a fixed phrase for states. */
   capital: z.string(),
-  lat: z.number(),
-  lon: z.number(),
+  lat: z.number().finite(),
+  lon: z.number().finite(),
   /** ISO2 country code, or two-letter state postal for `us_state`. */
   iso2: z.string().length(2),
   /** ISO3 for countries; `USA` for U.S. states. */

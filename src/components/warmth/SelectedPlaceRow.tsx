@@ -59,7 +59,7 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
 
   return (
     <li className="border-border/70 flex items-stretch gap-2 rounded-xl border bg-muted/50 p-2 dark:bg-white/5 lg:items-center lg:gap-3 lg:rounded-2xl lg:p-3">
-      <PlaceFlagImg place={place} className="size-6! shrink-0 self-center lg:size-8!" />
+      <PlaceFlagImg place={place} className="!size-6 shrink-0 self-center lg:!size-8" />
       <span
         className="ring-foreground/15 w-1.5 shrink-0 self-stretch rounded-full ring-2 max-lg:min-h-10 lg:h-10 dark:ring-white/20"
         style={{ background: place.warmthFill }}

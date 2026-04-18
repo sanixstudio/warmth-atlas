@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizePlaceLabel } from "./merge-place-search";
+import { PLACE_SEARCH_CITY_EXACT_DEDUPE_MAX } from "./place-search-config";
 import { placeNameMatchScore, rankSearchResults } from "./rank-place-search";
 import type { PlaceSearchResult } from "@/lib/schemas/place";
 
@@ -70,8 +71,23 @@ describe("rankSearchResults", () => {
       iso3: "USA",
     }));
     const out = rankSearchResults("india", rows, 20);
-    expect(out.length).toBe(6);
+    expect(out.length).toBe(PLACE_SEARCH_CITY_EXACT_DEDUPE_MAX);
     expect(out.every((p) => p.name === "India")).toBe(true);
+  });
+
+  it("returns empty when max is not positive or not finite", () => {
+    const one: PlaceSearchResult = {
+      kind: "city",
+      id: "city-1",
+      name: "Test",
+      capital: "Somewhere",
+      lat: 0,
+      lon: 0,
+      iso2: "US",
+      iso3: "USA",
+    };
+    expect(rankSearchResults("test", [one], 0)).toEqual([]);
+    expect(rankSearchResults("test", [one], Number.NaN)).toEqual([]);
   });
 
   it("respects max", () => {

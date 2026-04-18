@@ -37,6 +37,9 @@ export function parseRestCountriesArray(data: unknown): PlaceSearchResult[] {
     const lon =
       r.capitalInfo?.latlng?.[1] ??
       r.latlng[1];
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      continue;
+    }
     const capitalName = r.capital?.[0] ?? "—";
 
     const iso2 = r.cca2.toUpperCase();

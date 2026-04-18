@@ -1,4 +1,6 @@
 import { normalizePlaceLabel } from "@/lib/search/merge-place-search";
+import { PLACE_SEARCH_CITY_EXACT_DEDUPE_MAX } from "@/lib/search/place-search-config";
+import { placeNamesEqual } from "@/lib/search/place-search-helpers";
 import type { PlaceSearchResult } from "@/lib/schemas/place";
 
 /** Strongest match: normalized place name equals the normalized query. */
@@ -35,7 +37,8 @@ export function rankSearchResults(
   max: number,
 ): PlaceSearchResult[] {
   const qn = normalizePlaceLabel(rawQuery);
-  if (!qn || max <= 0) return [];
+  const cap = Number.isFinite(max) && max > 0 ? Math.min(Math.floor(max), 500) : 0;
+  if (!qn || cap <= 0) return [];
 
   const seen = new Set<string>();
   const unique: PlaceSearchResult[] = [];
@@ -50,9 +53,9 @@ export function rankSearchResults(
     score: placeNameMatchScore(qn, item),
   }));
 
-  const hasExact = scored.some((s) => normalizePlaceLabel(s.item.name) === qn);
+  const hasExact = scored.some((s) => placeNamesEqual(s.item.name, rawQuery));
   const filtered = hasExact
-    ? scored.filter((s) => normalizePlaceLabel(s.item.name) === qn)
+    ? scored.filter((s) => placeNamesEqual(s.item.name, rawQuery))
     : scored.filter((s) => s.score > 0);
 
   filtered.sort((a, b) => {
@@ -60,15 +63,13 @@ export function rankSearchResults(
     return a.item.name.length - b.item.name.length;
   });
 
-  let out = filtered.slice(0, max).map((s) => s.item);
-  /** Many geocoder rows can share one label (e.g. “India” hamlets); keep the list usable. */
-  const CITY_EXACT_DEDUPE_CAP = 6;
+  let out = filtered.slice(0, cap).map((s) => s.item);
   if (
-    out.length > CITY_EXACT_DEDUPE_CAP &&
+    out.length > PLACE_SEARCH_CITY_EXACT_DEDUPE_MAX &&
     out.every((p) => p.kind === "city") &&
-    out.every((p) => normalizePlaceLabel(p.name) === normalizePlaceLabel(out[0].name))
+    out.every((p) => placeNamesEqual(p.name, out[0].name))
   ) {
-    out = out.slice(0, CITY_EXACT_DEDUPE_CAP);
+    out = out.slice(0, PLACE_SEARCH_CITY_EXACT_DEDUPE_MAX);
   }
   return out;
 }
