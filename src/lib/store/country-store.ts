@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { WarmthDisplayMode } from "@/lib/warmth/display-mode";
 import {
   colorFromTempCelsius,
   outlineColorFromTempCelsius,
@@ -32,6 +34,9 @@ type CountryStore = {
   /** Panel + legend: how air temperatures are labeled (stored data stays °C). */
   tempDisplayUnit: TemperatureDisplayUnit;
   setTempDisplayUnit: (unit: TemperatureDisplayUnit) => void;
+  /** Globe + legend: color-first vs patterns/outlines + stronger numbers. */
+  warmthDisplayMode: WarmthDisplayMode;
+  setWarmthDisplayMode: (mode: WarmthDisplayMode) => void;
   /** Add or replace by canonical `id`; recompute warmth from temperature. */
   upsertCountry: (
     input: Omit<SelectedCountry, "warmthFill" | "warmthOutline">,
@@ -51,21 +56,35 @@ function withWarmth(
   };
 }
 
-export const useCountryStore = create<CountryStore>((set) => ({
-  countries: [],
-  tempDisplayUnit: "F",
-  setTempDisplayUnit: (unit) => set({ tempDisplayUnit: unit }),
-  upsertCountry: (input) =>
-    set((state) => {
-      const next = withWarmth(input);
-      const without = state.countries.filter(
-        (c) => c.id.toUpperCase() !== next.id.toUpperCase(),
-      );
-      return { countries: [...without, next] };
+export const useCountryStore = create<CountryStore>()(
+  persist(
+    (set) => ({
+      countries: [],
+      tempDisplayUnit: "F",
+      warmthDisplayMode: "standard",
+      setTempDisplayUnit: (unit) => set({ tempDisplayUnit: unit }),
+      setWarmthDisplayMode: (warmthDisplayMode) => set({ warmthDisplayMode }),
+      upsertCountry: (input) =>
+        set((state) => {
+          const next = withWarmth(input);
+          const without = state.countries.filter(
+            (c) => c.id.toUpperCase() !== next.id.toUpperCase(),
+          );
+          return { countries: [...without, next] };
+        }),
+      removeCountry: (id) =>
+        set((state) => ({
+          countries: state.countries.filter((c) => c.id.toUpperCase() !== id.toUpperCase()),
+        })),
+      clearAll: () => set({ countries: [] }),
     }),
-  removeCountry: (id) =>
-    set((state) => ({
-      countries: state.countries.filter((c) => c.id.toUpperCase() !== id.toUpperCase()),
-    })),
-  clearAll: () => set({ countries: [] }),
-}));
+    {
+      name: "fun-map-preferences",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        tempDisplayUnit: state.tempDisplayUnit,
+        warmthDisplayMode: state.warmthDisplayMode,
+      }),
+    },
+  ),
+);

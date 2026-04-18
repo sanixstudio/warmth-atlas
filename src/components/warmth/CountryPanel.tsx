@@ -1,7 +1,7 @@
 "use client";
 
 import { CancelledError, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MapPin, Sparkles, X } from "lucide-react";
+import { Loader2, MapPin, Palette, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import { PLACE_SEARCH_MIN_QUERY_LEN, PLACE_SEARCH_QUERY_MAX_LEN } from "@/lib/se
 import type { PlaceSearchResult } from "@/lib/schemas/place";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
+import { isAccessibleWarmthMode } from "@/lib/warmth/display-mode";
 import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
 const SEARCH_STALE_MS = 10 * 60_000;
@@ -94,17 +95,27 @@ export function CountryPanel() {
     setRichIntroDismissed(true);
   }, []);
 
-  const { countries, tempDisplayUnit, setTempDisplayUnit, upsertCountry, removeCountry, clearAll } =
-    useCountryStore(
-      useShallow((s) => ({
-        countries: s.countries,
-        tempDisplayUnit: s.tempDisplayUnit,
-        setTempDisplayUnit: s.setTempDisplayUnit,
-        upsertCountry: s.upsertCountry,
-        removeCountry: s.removeCountry,
-        clearAll: s.clearAll,
-      })),
-    );
+  const {
+    countries,
+    tempDisplayUnit,
+    setTempDisplayUnit,
+    warmthDisplayMode,
+    setWarmthDisplayMode,
+    upsertCountry,
+    removeCountry,
+    clearAll,
+  } = useCountryStore(
+    useShallow((s) => ({
+      countries: s.countries,
+      tempDisplayUnit: s.tempDisplayUnit,
+      setTempDisplayUnit: s.setTempDisplayUnit,
+      warmthDisplayMode: s.warmthDisplayMode,
+      setWarmthDisplayMode: s.setWarmthDisplayMode,
+      upsertCountry: s.upsertCountry,
+      removeCountry: s.removeCountry,
+      clearAll: s.clearAll,
+    })),
+  );
 
   const addCountry = useMutation({
     mutationFn: async (place: PlaceSearchResult) => {
@@ -327,7 +338,7 @@ export function CountryPanel() {
           />
         ) : null}
 
-        <div className="max-lg:order-3 relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-[min(38svh,220px)] lg:order-4">
+        <div className="max-lg:order-3 relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-[min(38svh,220px)] lg:order-5">
           <div className="mb-1 flex shrink-0 items-center justify-between gap-2 sm:mb-2">
             <span className="text-foreground inline-flex items-center gap-2 text-sm font-semibold sm:text-base">
               Your places
@@ -392,7 +403,40 @@ export function CountryPanel() {
           )}
         </div>
 
-        <div className="relative z-0 space-y-1 pt-0.5 max-lg:order-4 max-lg:shrink-0 max-lg:rounded-lg max-lg:border max-lg:border-border/60 max-lg:bg-muted/30 max-lg:px-2 max-lg:py-1.5 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-3 lg:border-0 lg:bg-transparent lg:p-0">
+        <div className="relative z-0 space-y-1 pt-0.5 max-lg:order-4 max-lg:shrink-0 max-lg:rounded-lg max-lg:border max-lg:border-border/60 max-lg:bg-muted/30 max-lg:px-2 max-lg:py-1.5 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-4 lg:border-0 lg:bg-transparent lg:p-0">
+          <span className="text-foreground inline-flex items-center gap-1.5 text-sm font-semibold max-lg:text-[10px] max-lg:leading-tight">
+            <Palette className="text-primary size-3.5 shrink-0 max-lg:size-3" aria-hidden />
+            Map warmth
+          </span>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={!isAccessibleWarmthMode(warmthDisplayMode) ? "default" : "secondary"}
+              className="h-9 min-w-0 touch-manipulation rounded-xl px-3 text-sm font-semibold max-lg:h-8 max-lg:min-h-8 max-lg:px-2.5 max-lg:text-xs sm:h-10 sm:text-sm"
+              onClick={() => setWarmthDisplayMode("standard")}
+              aria-pressed={!isAccessibleWarmthMode(warmthDisplayMode)}
+            >
+              Color
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={isAccessibleWarmthMode(warmthDisplayMode) ? "default" : "secondary"}
+              className="h-9 min-w-0 touch-manipulation rounded-xl px-3 text-sm font-semibold max-lg:h-8 max-lg:min-h-8 max-lg:px-2.5 max-lg:text-xs sm:h-10 sm:text-sm"
+              onClick={() => setWarmthDisplayMode("accessible")}
+              aria-pressed={isAccessibleWarmthMode(warmthDisplayMode)}
+            >
+              Patterns
+            </Button>
+          </div>
+          <p className="text-muted-foreground max-lg:text-[10px] max-lg:leading-snug lg:text-xs">
+            Patterns: lighter fill, halo + dashed outlines on the globe, larger labels, striped legend—use if color
+            alone is hard to read.
+          </p>
+        </div>
+
+        <div className="relative z-0 space-y-1 pt-0.5 max-lg:order-5 max-lg:shrink-0 max-lg:rounded-lg max-lg:border max-lg:border-border/60 max-lg:bg-muted/30 max-lg:px-2 max-lg:py-1.5 sm:mt-0 sm:space-y-2 sm:pt-0 lg:order-3 lg:border-0 lg:bg-transparent lg:p-0">
           <span className="text-foreground text-sm font-semibold max-lg:text-[10px] max-lg:leading-tight">
             Show temperatures in
           </span>

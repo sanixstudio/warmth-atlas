@@ -30,6 +30,7 @@ import { mapLabelWithFlagEmoji } from "@/lib/geo/place-flag";
 import { findUsStateFeature, getUsStateLabelLngLat } from "@/lib/geo/us-state-features";
 import type { SelectedCountry } from "@/lib/store/country-store";
 import { useCountryStore } from "@/lib/store/country-store";
+import { isAccessibleWarmthMode } from "@/lib/warmth/display-mode";
 import type { TemperatureDisplayUnit } from "@/lib/warmth/colorFromTemp";
 import { formatTemperature } from "@/lib/warmth/colorFromTemp";
 
@@ -38,15 +39,27 @@ const MAP_STYLE_LIGHT = "mapbox://styles/mapbox/light-v11";
 const COUNTRIES_URL = "/data/ne_110m_admin_0_countries.geojson";
 const US_STATES_URL = "/data/ne_110m_us_admin_1_states.geojson";
 
-const fillPaint: NonNullable<FillLayerSpecification["paint"]> = {
+const fillPaintStandard: NonNullable<FillLayerSpecification["paint"]> = {
   "fill-color": ["get", "warmthFill"],
   "fill-opacity": 1,
 };
 
-const linePaint: NonNullable<LineLayerSpecification["paint"]> = {
+const fillPaintAccessible: NonNullable<FillLayerSpecification["paint"]> = {
+  "fill-color": ["get", "warmthFill"],
+  "fill-opacity": 0.42,
+};
+
+const linePaintStandard: NonNullable<LineLayerSpecification["paint"]> = {
   "line-color": ["get", "warmthOutline"],
   "line-width": 2.5,
   "line-opacity": 0.95,
+};
+
+const linePaintAccessible: NonNullable<LineLayerSpecification["paint"]> = {
+  "line-color": ["get", "warmthOutline"],
+  "line-width": 3.5,
+  "line-opacity": 1,
+  "line-dasharray": [2, 2],
 };
 
 function buildHighlightData(
@@ -155,9 +168,8 @@ function buildTemperatureLabelPoints(
   return { type: "FeatureCollection", features };
 }
 
-const labelLayout: NonNullable<SymbolLayerSpecification["layout"]> = {
+const labelLayoutBase: Omit<NonNullable<SymbolLayerSpecification["layout"]>, "text-size"> = {
   "text-field": ["get", "mapLabel"],
-  "text-size": 14,
   "text-line-height": 1.35,
   "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
   "text-anchor": "center",
@@ -186,9 +198,15 @@ function GlobeMap() {
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
 
-  const { countries, tempDisplayUnit } = useCountryStore(
-    useShallow((s) => ({ countries: s.countries, tempDisplayUnit: s.tempDisplayUnit })),
+  const { countries, tempDisplayUnit, warmthDisplayMode } = useCountryStore(
+    useShallow((s) => ({
+      countries: s.countries,
+      tempDisplayUnit: s.tempDisplayUnit,
+      warmthDisplayMode: s.warmthDisplayMode,
+    })),
   );
+
+  const accessible = isAccessibleWarmthMode(warmthDisplayMode);
 
   const flyTargetKey = useMemo(() => {
     const last = countries.at(-1);
@@ -213,6 +231,25 @@ function GlobeMap() {
 
   const labelPaint = useMemo(
     () => (isLight ? labelPaintLight : labelPaintDark),
+    [isLight],
+  );
+
+  const labelLayout = useMemo(
+    () =>
+      ({
+        ...labelLayoutBase,
+        "text-size": accessible ? 16 : 14,
+      }) as NonNullable<SymbolLayerSpecification["layout"]>,
+    [accessible],
+  );
+
+  const haloLinePaint: NonNullable<LineLayerSpecification["paint"]> = useMemo(
+    () => ({
+      "line-color": isLight ? "#0f172a" : "#f8fafc",
+      "line-width": 9,
+      "line-opacity": 0.38,
+      "line-blur": 2,
+    }),
     [isLight],
   );
 
@@ -362,12 +399,24 @@ function GlobeMap() {
     >
       <NavigationControl position="top-left" showCompass={false} />
       <Source id="warmth-countries" type="geojson" data={highlight}>
-        <Layer id="warmth-fill" type="fill" paint={fillPaint} />
+        {accessible ? (
+          <Layer
+            id="warmth-outline-halo"
+            type="line"
+            layout={{ "line-join": "round" }}
+            paint={haloLinePaint}
+          />
+        ) : null}
+        <Layer
+          id="warmth-fill"
+          type="fill"
+          paint={accessible ? fillPaintAccessible : fillPaintStandard}
+        />
         <Layer
           id="warmth-outline"
           type="line"
           layout={{ "line-join": "round" }}
-          paint={linePaint}
+          paint={accessible ? linePaintAccessible : linePaintStandard}
         />
       </Source>
       <Source id="warmth-temperature-labels" type="geojson" data={labelPoints}>

@@ -61,9 +61,10 @@ export const PRODUCT_GUARDS = {
     title: "Accessibility & reading the map",
     bullets: [
       "Temperature numbers appear in the list and on the map; the color scale is an extra cue, not the only signal.",
-      "The warmth legend describes the color ramp; we note that color alone is not ideal for all vision types—use °C/°F and numeric labels.",
-      "We aim for touch-friendly controls and readable type on phones for equity of access (e.g. Title I / rural 1:1 device scenarios). A pattern or numeric-only highlight mode is a future enhancement.",
-      "Labels use plain language where we can so students are not blocked by jargon; numbers stay the source of truth for color on the map.",
+      "Use Map warmth → Patterns for a non-color-first view: lighter fill, high-contrast halo and dashed outlines on the globe, larger temperature labels, and a striped legend bar. Your choice is saved in this browser.",
+      "The warmth legend describes the color ramp; in Standard mode, use °C/°F and numeric labels alongside color.",
+      "We aim for touch-friendly controls and readable type on phones for equity of access (e.g. Title I / rural 1:1 device scenarios).",
+      "Labels use plain language where we can so students are not blocked by jargon; numbers stay the source of truth for warmth on the map.",
     ],
   },
   offline: {
