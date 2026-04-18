@@ -44,7 +44,9 @@ export function flagCdnFallbackFromSearchResult(p: PlaceSearchResult): string {
 /** Two-line map label: regional flag emoji + temperature string. */
 export function mapLabelWithFlagEmoji(c: SelectedCountry, tempLabel: string): string {
   const flag =
-    c.kind === "country" ? iso2ToRegionalFlagEmoji(c.iso2) : iso2ToRegionalFlagEmoji("US");
+    c.kind === "us_state"
+      ? iso2ToRegionalFlagEmoji("US")
+      : iso2ToRegionalFlagEmoji(c.iso2);
   const prefix = flag || (c.kind === "us_state" ? "US" : c.iso2);
   return `${prefix}\n${tempLabel}`;
 }

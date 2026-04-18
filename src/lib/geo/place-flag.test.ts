@@ -36,4 +36,26 @@ describe("mapLabelWithFlagEmoji", () => {
     expect(s).toContain("\n");
     expect(s.startsWith(iso2ToRegionalFlagEmoji("DE"))).toBe(true);
   });
+
+  it("uses country flag emoji for a city row (iso2)", () => {
+    const s = mapLabelWithFlagEmoji(
+      {
+        id: "city-5391959",
+        kind: "city",
+        iso2: "US",
+        iso3: "USA",
+        name: "San Francisco",
+        capital: "CA · US",
+        lat: 37.77,
+        lon: -122.42,
+        tempC: 15,
+        observedAt: null,
+        warmthFill: "#000",
+        warmthOutline: "#000",
+      },
+      "59°F",
+    );
+    expect(s.endsWith("59°F")).toBe(true);
+    expect(s.startsWith(iso2ToRegionalFlagEmoji("US"))).toBe(true);
+  });
 });

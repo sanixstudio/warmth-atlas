@@ -7,12 +7,12 @@ import {
 } from "@/lib/warmth/colorFromTemp";
 
 /**
- * One tracked map entry: sovereign country or U.S. state / D.C. Unique by `id`
- * (ISO2 for countries, ISO-3166-2 `US-XX` for states).
+ * One tracked map entry: country, U.S. state / D.C., or geocoded city. Unique by `id`
+ * (ISO2, `US-XX`, or `city-{Open-Meteo geocode id}`).
  */
 export type SelectedCountry = {
   id: string;
-  kind: "country" | "us_state";
+  kind: "country" | "us_state" | "city";
   iso2: string;
   iso3: string;
   name: string;

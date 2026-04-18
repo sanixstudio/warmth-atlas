@@ -34,6 +34,29 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
   const tempLabel = formatTemperature(place.tempC, tempDisplayUnit);
   const subtitleCountry = `${place.iso2} · ${place.capital}`;
 
+  const mobileSubtitle =
+    place.kind === "country"
+      ? subtitleCountry
+      : place.kind === "us_state"
+        ? `U.S. state · ${place.id}`
+        : place.capital;
+
+  const badgeLabel = place.kind === "country" ? place.iso2 : place.kind === "us_state" ? place.id : place.iso2;
+
+  const desktopSubline =
+    place.kind === "country"
+      ? `${place.capital} · ${tempLabel}`
+      : place.kind === "us_state"
+        ? `Natural Earth reference · ${tempLabel}`
+        : `${place.capital} · ${tempLabel}`;
+
+  const observedContext =
+    place.kind === "country"
+      ? " (capital area, Open-Meteo)"
+      : place.kind === "us_state"
+        ? " (NE reference, Open-Meteo)"
+        : " (city center, Open-Meteo)";
+
   return (
     <li className="border-border/70 flex items-stretch gap-2 rounded-xl border bg-muted/50 p-2 dark:bg-white/5 lg:items-center lg:gap-3 lg:rounded-2xl lg:p-3">
       <PlaceFlagImg place={place} className="size-6! shrink-0 self-center lg:size-8!" />
@@ -49,9 +72,7 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
           <span className="truncate text-sm font-semibold leading-tight">{place.name}</span>
           <span className="text-primary shrink-0 text-sm font-bold tabular-nums">{tempLabel}</span>
         </div>
-        <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">
-          {place.kind === "country" ? subtitleCountry : `U.S. state · ${place.id}`}
-        </p>
+        <p className="text-muted-foreground mt-0.5 truncate text-[11px] leading-tight">{mobileSubtitle}</p>
       </div>
 
       {/* Spacious: desktop sidebar */}
@@ -59,18 +80,14 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <span className="truncate text-[15px] font-semibold sm:text-base">{place.name}</span>
           <Badge variant="secondary" className="font-mono text-[10px] uppercase">
-            {place.kind === "country" ? place.iso2 : place.id}
+            {badgeLabel}
           </Badge>
         </div>
-        <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
-          {place.kind === "country"
-            ? `${place.capital} · ${tempLabel}`
-            : `Natural Earth reference · ${tempLabel}`}
-        </p>
+        <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">{desktopSubline}</p>
         {place.observedAt ? (
           <p className="text-muted-foreground/85 mt-0.5 max-w-full truncate text-[10px] sm:text-xs">
             Observed {formatObservationTime(place.observedAt)}
-            {place.kind === "country" ? " (capital area, Open-Meteo)" : " (NE reference, Open-Meteo)"}
+            {observedContext}
           </p>
         ) : null}
       </div>
@@ -97,10 +114,15 @@ export const SelectedPlaceRow = memo(function SelectedPlaceRow({
                 <>
                   Near {place.capital} coordinates from REST Countries. Source: Open-Meteo (current).
                 </>
-              ) : (
+              ) : place.kind === "us_state" ? (
                 <>
                   Natural Earth reference coordinates for this U.S. state (not the legislative capital). Source:
                   Open-Meteo (current).
+                </>
+              ) : (
+                <>
+                  Geocoded city center (Open-Meteo). The colored disk on the map is an approximate area for
+                  visibility, not official municipal boundaries. Source: Open-Meteo (current).
                 </>
               )}
               {place.observedAt ? (

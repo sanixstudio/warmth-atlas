@@ -97,6 +97,13 @@ export default function EducatorsPage() {
               </a>
             </li>
             <li>
+              <span className="text-foreground font-medium">Cities: </span>
+              {PRODUCT_DATA_SOURCES.geocoding.note}{" "}
+              <a className="text-primary underline-offset-4 hover:underline" href={PRODUCT_DATA_SOURCES.geocoding.url}>
+                {PRODUCT_DATA_SOURCES.geocoding.name}
+              </a>
+            </li>
+            <li>
               <span className="text-foreground font-medium">Flags: </span>
               {PRODUCT_DATA_SOURCES.flags.note}{" "}
               <a className="text-primary underline-offset-4 hover:underline" href={PRODUCT_DATA_SOURCES.flags.url}>

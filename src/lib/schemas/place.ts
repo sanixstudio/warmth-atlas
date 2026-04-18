@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 /**
- * Normalized search hit: sovereign country (REST Countries) or U.S. state (Natural Earth metadata).
+ * Normalized search hit: country (REST Countries), U.S. state (bundled NE metadata), or city (Open-Meteo geocoding).
  */
 export const placeSearchResultSchema = z.object({
-  kind: z.enum(["country", "us_state"]),
-  /** Stable id: ISO2 for countries (`DE`), ISO-3166-2 for states (`US-TX`). */
-  id: z.string().min(2).max(8),
+  kind: z.enum(["country", "us_state", "city"]),
+  /** Stable id: ISO2 for countries, `US-XX` for states, `city-{geocodeId}` for cities. */
+  id: z.string().min(2).max(40),
   name: z.string(),
   /** Secondary line in UI: capital name, or a fixed phrase for states. */
   capital: z.string(),

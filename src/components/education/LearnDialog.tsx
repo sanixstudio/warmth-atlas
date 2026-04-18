@@ -103,6 +103,18 @@ export function LearnDialog() {
                   </a>
                 </li>
                 <li>
+                  <span className="text-foreground font-medium">Cities: </span>
+                  {PRODUCT_DATA_SOURCES.geocoding.note}{" "}
+                  <a
+                    href={PRODUCT_DATA_SOURCES.geocoding.url}
+                    className="text-primary underline-offset-4 hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {PRODUCT_DATA_SOURCES.geocoding.name}
+                  </a>
+                </li>
+                <li>
                   <span className="text-foreground font-medium">Flags: </span>
                   {PRODUCT_DATA_SOURCES.flags.note}{" "}
                   <a

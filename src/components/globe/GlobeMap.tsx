@@ -8,6 +8,7 @@ import type {
   Map as MapboxMap,
   SymbolLayerSpecification,
 } from "mapbox-gl";
+import bbox from "@turf/bbox";
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 import { useTheme } from "next-themes";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,6 +25,7 @@ import {
   findCountryFeature,
   getCountryLabelLngLat,
 } from "@/lib/geo/country-features";
+import { cityWarmthCircle } from "@/lib/geo/city-highlight";
 import { mapLabelWithFlagEmoji } from "@/lib/geo/place-flag";
 import { findUsStateFeature, getUsStateLabelLngLat } from "@/lib/geo/us-state-features";
 import type { SelectedCountry } from "@/lib/store/country-store";
@@ -67,13 +69,24 @@ function buildHighlightData(
           placeId: c.id,
         },
       });
-    } else {
+    } else if (c.kind === "us_state") {
       if (!usStates) continue;
       const base = findUsStateFeature(usStates, c.id);
       if (!base) continue;
       features.push({
         type: "Feature" as const,
         geometry: base.geometry,
+        properties: {
+          warmthFill: c.warmthFill,
+          warmthOutline: c.warmthOutline,
+          placeId: c.id,
+        },
+      });
+    } else {
+      const disk = cityWarmthCircle(c.lon, c.lat);
+      features.push({
+        type: "Feature" as const,
+        geometry: disk.geometry,
         properties: {
           warmthFill: c.warmthFill,
           warmthOutline: c.warmthOutline,
@@ -109,12 +122,24 @@ function buildTemperatureLabelPoints(
           placeId: c.id,
         },
       });
-    } else {
+    } else if (c.kind === "us_state") {
       if (!usStates) continue;
       const base = findUsStateFeature(usStates, c.id);
       if (!base) continue;
       const [lon, lat] = getUsStateLabelLngLat(base);
       const geometry: Point = { type: "Point", coordinates: [lon, lat] };
+      const tempLabel = formatTemperature(c.tempC, unit, 1);
+      features.push({
+        type: "Feature",
+        geometry,
+        properties: {
+          mapLabel: mapLabelWithFlagEmoji(c, tempLabel),
+          tempLabel,
+          placeId: c.id,
+        },
+      });
+    } else {
+      const geometry: Point = { type: "Point", coordinates: [c.lon, c.lat] };
       const tempLabel = formatTemperature(c.tempC, unit, 1);
       features.push({
         type: "Feature",
@@ -268,9 +293,22 @@ function GlobeMap() {
     if (last.kind === "country") {
       if (!world) return;
       feat = findCountryFeature(world, last.iso2, last.iso3);
-    } else {
+    } else if (last.kind === "us_state") {
       if (!usStates) return;
       feat = findUsStateFeature(usStates, last.id);
+    } else {
+      const disk = cityWarmthCircle(last.lon, last.lat);
+      const b = bbox(disk);
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+      map.fitBounds(
+        [
+          [b[0], b[1]],
+          [b[2], b[3]],
+        ],
+        { padding: { top: 80, bottom: 80, left: 80, right: 100 }, maxZoom: 11, duration: 1400 },
+      );
+      return;
     }
     if (!feat) return;
 

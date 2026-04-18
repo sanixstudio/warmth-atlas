@@ -19,6 +19,11 @@ export const PRODUCT_DATA_SOURCES = {
     url: "https://restcountries.com/",
     note: "Country names, ISO codes, and capital coordinates.",
   },
+  geocoding: {
+    name: "Open-Meteo Geocoding API",
+    url: "https://open-meteo.com/en/docs/geocoding-api",
+    note: "City and town name search; coordinates point to the returned center for current weather (not full city limits).",
+  },
   flags: {
     name: "flagcdn.com",
     url: "https://flagcdn.com/",
@@ -49,6 +54,7 @@ export const PRODUCT_GUARDS = {
       "Map attribution appears on the map (Mapbox); we list software and data sources in Learn and on the Educators page.",
       "Flag thumbnails in the list load from flagcdn.com; labels on the globe may combine regional-indicator emoji with the temperature text—rendering can vary slightly by device.",
       "Server routes apply basic per-IP rate limits to reduce abuse of upstream weather and country search APIs; very heavy classroom use on one IP may occasionally see a short retry window.",
+      "Cities use geocoded center coordinates; the map highlight is an approximate disk for visibility, not an official administrative boundary from a cadastral source.",
     ],
   },
   accessibility: {
